@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "692755455239",
+    "project_id": "testforum-40bf5",
+    "storage_bucket": "testforum-40bf5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:692755455239:android:31364a77002aa8c0cbb9a2",
+        "android_client_info": {
+          "package_name": "com.example.testforum"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "692755455239-af27brqtubct3squn7itsq8nqniac8ir.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.testforum",
+            "certificate_hash": "4da18d735a0e91136dac1ed2ff6a72d4d0fda5a4"
+          }
+        },
+        {
+          "client_id": "692755455239-coi1ngj675l05jviofmav9n24539t2j6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZx3naI2gsdSxXdXmao7-WbgSf6YovEp0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "692755455239-coi1ngj675l05jviofmav9n24539t2j6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
