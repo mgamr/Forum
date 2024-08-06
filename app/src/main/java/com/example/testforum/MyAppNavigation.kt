@@ -16,7 +16,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, googleSignIn: () -> Unit, googleSignInClient: GoogleSignInClient){
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "login", builder = {
+    NavHost(navController = navController, startDestination = "home", builder = {
         composable("login"){
             LogInPage(modifier, navController, authViewModel, googleSignIn)
         }

@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,6 +23,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
@@ -41,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,12 +69,12 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
     val posts = db.collection("posts")
     val postsList = remember { mutableStateListOf<Post>() }
 
-    LaunchedEffect(authState.value) {
-        when(authState.value){
-            is AuthState.Unauthenticated -> navController.navigate("login")
-            else -> Unit
-        }
-    }
+//    LaunchedEffect(authState.value) {
+//        when(authState.value){
+//            is AuthState.Unauthenticated -> navController.navigate("login")
+//            else -> Unit
+//        }
+//    }
 
     LaunchedEffect(Unit) {
         posts.get()
@@ -145,7 +150,13 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
                             horizontalArrangement = Arrangement.End
                         ) {
                             FloatingActionButton(
-                                onClick = { addPost = true },
+                                onClick = {
+                                    if (authState.value is AuthState.Unauthenticated) {
+                                        navController.navigate("login")
+                                    } else {
+                                        addPost = true
+                                    }
+                                          },
                                 modifier = Modifier.size(120.dp),
                                 containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
                                 elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
@@ -160,7 +171,9 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
         },
     ) { innerPadding ->
 
-        Column(modifier = modifier.fillMaxSize().padding(innerPadding)) {
+        Column(modifier = modifier
+            .fillMaxSize()
+            .padding(innerPadding)) {
             TopAppBar(
                 title = {
                     Text(
@@ -175,16 +188,32 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        user?.email?.let { email ->
-                            navController.currentBackStackEntry?.savedStateHandle?.set("userEmail", email)
-                            navController.navigate("profile")
+                    if (authState.value is AuthState.Unauthenticated) {
+                        Button(onClick = { navController.navigate("login") },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+                                contentColor = Color.Black
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                            ) {
+                            Text(text = "Log In")
                         }
-                    }) {
-                        Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
                     }
-                    IconButton(onClick = { authViewModel.signout(googleSignInClient) }) {
-                        Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null)
+                    if (authState.value is AuthState.Authenticated) {
+                        IconButton(onClick = {
+                            user?.email?.let { email ->
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    "userEmail",
+                                    email
+                                )
+                                navController.navigate("profile")
+                            }
+                        }) {
+                            Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+                        }
+                        IconButton(onClick = { authViewModel.signout(googleSignInClient) }) {
+                            Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null)
+                        }
                     }
                 }
             )
