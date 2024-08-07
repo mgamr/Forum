@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.testforum.AuthState
 import com.example.testforum.AuthViewModel
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Composable
 fun SignUpPage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel){
@@ -41,7 +43,7 @@ fun SignUpPage(modifier: Modifier = Modifier, navController: NavController, auth
 
     LaunchedEffect(authState.value) {
         when (authState.value) {
-            is AuthState.Authenticated -> navController.navigate("home")
+            is AuthState.Authenticated -> navController.navigate("profile")
             is AuthState.Error -> Toast.makeText(
                 context,
                 (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT
@@ -85,6 +87,7 @@ fun SignUpPage(modifier: Modifier = Modifier, navController: NavController, auth
 
         Button(
             onClick = {
+                navController.currentBackStackEntry?.savedStateHandle?.set("userEmail", email)
                 authViewModel.signup(email, password)
             }, enabled = authState.value != AuthState.Loading
         ) {
