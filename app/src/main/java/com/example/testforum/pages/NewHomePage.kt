@@ -111,7 +111,8 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
 //                            viewModel.addNote(newPostText)
                             val post = user?.let { Post(newPostText, it) }
                             if (post != null) {
-                                user?.username?.let { posts.add(post) }
+//                                user?.username?.let { posts.add(post) }
+                                posts.add(post)
                             }
                             Toast.makeText(context, "Added Post", Toast.LENGTH_SHORT).show()
                             newPostText = ""
