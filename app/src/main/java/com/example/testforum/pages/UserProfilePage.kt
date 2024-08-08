@@ -126,52 +126,49 @@ fun UserProfilePage(
             }
         )
 
-        user?.let { UserProfile(it, postsList) }
+        user?.let { UserProfile(it) }
+        ViewPosts(modifier = Modifier.padding(4.dp), postsList, navController, user)
     }
 }
 
 @Composable
-fun UserProfile(user: User, postsList: List<Post>) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row (
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            val painter = if (user.profilePicture.isNullOrEmpty()) {
-                painterResource(id = R.drawable.default_empty_profile)
-            } else {
-                rememberAsyncImagePainter(model = user.profilePicture)
-            }
-
-            Image(
-                painter = painter,
-                contentDescription = "Profile picture",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .padding(vertical = 16.dp)
-            )
-
-            Column {
-                Text(
-                    text = "Username: " + user.username,
-                    textAlign = TextAlign.Left,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Text(
-                    text = "Display name: " + user.displayName,
-                    textAlign = TextAlign.Left,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+fun UserProfile(user: User) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val painter = if (user.profilePicture.isNullOrEmpty()) {
+            painterResource(id = R.drawable.default_empty_profile)
+        } else {
+            rememberAsyncImagePainter(model = user.profilePicture)
         }
 
-        ViewPosts(modifier = Modifier.padding(4.dp), postsList)
+        Image(
+            painter = painter,
+            contentDescription = "Profile picture",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .padding(vertical = 16.dp)
+        )
+
+        Column {
+            Text(
+                text = "Username: " + user.username,
+                textAlign = TextAlign.Left,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Text(
+                text = "Display name: " + user.displayName,
+                textAlign = TextAlign.Left,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
