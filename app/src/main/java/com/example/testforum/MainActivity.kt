@@ -31,6 +31,7 @@ import com.google.firebase.ktx.Firebase
 class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private val authViewModel: AuthViewModel by viewModels()
+    private val dataViewModel: DataViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +58,7 @@ class MainActivity : ComponentActivity() {
                     MyAppNavigation(
                         modifier = Modifier.padding(innerPadding),
                         authViewModel = authViewModel,
+                        dataViewModel = dataViewModel,
                         googleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
                         googleSignInClient = googleSignInClient
                     )

@@ -2,7 +2,9 @@ package com.example.testforum.pages
 
 import android.content.ContentValues.TAG
 import android.util.Log
+import android.util.Patterns
 import android.widget.Toast
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,14 +49,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.testforum.AuthState
 import com.example.testforum.AuthViewModel
 import com.example.testforum.data.Post
+import com.example.testforum.data.User
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -80,7 +89,7 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
         posts.get()
             .addOnSuccessListener { result ->
                 for (document in result) {
-                    val post = document.toObject(Post::class.java)
+                    val post = document.toObject(Post::class.java).copy(postId = document.id)
                     postsList.add(post)
                 }
             }
@@ -109,7 +118,7 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
                     onClick = {
                         if (newPostText.isNotBlank()) {
 //                            viewModel.addNote(newPostText)
-                            val post = user?.let { Post(newPostText, it) }
+                            val post = user?.let { Post(postContent = newPostText, user = it) }
                             if (post != null) {
 //                                user?.username?.let { posts.add(post) }
                                 posts.add(post)
@@ -132,100 +141,90 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
     }
 
 
-    Scaffold(
-        bottomBar = {
-            BottomAppBar(
-                containerColor = Color.Transparent,
-                actions = {},
-                floatingActionButton = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                            .padding(start = 16.dp)
-                            .padding(end = 4.dp),
-                        contentAlignment = Alignment.BottomEnd
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            FloatingActionButton(
-                                onClick = {
-                                    if (authState.value is AuthState.Unauthenticated) {
-                                        navController.navigate("login")
-                                    } else {
-                                        addPost = true
-                                    }
-                                          },
-                                modifier = Modifier.size(120.dp),
-                                containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-                                elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
+    Scaffold() { innerPadding ->
+        Box() {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Forum",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
+                        }
+                    },
+                    actions = {
+                        if (authState.value is AuthState.Unauthenticated) {
+                            Button(
+                                onClick = { navController.navigate("login") },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+                                    contentColor = Color.Black
+                                ),
+                                shape = RoundedCornerShape(16.dp)
                             ) {
-                                Text("Add Post")
-//                                Icon(Icons.Filled.Add, contentDescription = null)
+                                Text(text = "Log In")
                             }
                         }
-                    }
-                }
-            )
-        },
-    ) { innerPadding ->
-
-        Column(modifier = modifier
-            .fillMaxSize()
-            .padding(innerPadding)) {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Forum",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    if (authState.value is AuthState.Unauthenticated) {
-                        Button(onClick = { navController.navigate("login") },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-                                contentColor = Color.Black
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                            ) {
-                            Text(text = "Log In")
-                        }
-                    }
-                    if (authState.value is AuthState.Authenticated) {
-                        IconButton(onClick = {
-                            user?.email?.let { email ->
-                                navController.currentBackStackEntry?.savedStateHandle?.set(
-                                    "userEmail",
-                                    email
+                        if (authState.value is AuthState.Authenticated) {
+                            IconButton(onClick = {
+                                user?.email?.let { email ->
+                                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                                        "userEmail",
+                                        email
+                                    )
+                                    navController.navigate("profile")
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = null
                                 )
-                                navController.navigate("profile")
                             }
-                        }) {
-                            Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
-                        }
-                        IconButton(onClick = { authViewModel.signout(googleSignInClient) }) {
-                            Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null)
+                            IconButton(onClick = { authViewModel.signout(googleSignInClient) }) {
+                                Icon(
+                                    imageVector = Icons.Default.ExitToApp,
+                                    contentDescription = null
+                                )
+                            }
                         }
                     }
-                }
-            )
+                )
 
-            ViewPosts(modifier = Modifier.padding(innerPadding), postsList)
+                ViewPosts(modifier = Modifier.padding(innerPadding), postsList, navController, user)
+            }
+            FloatingActionButton(
+                onClick = {
+                    if (authState.value is AuthState.Unauthenticated) {
+                        navController.navigate("login")
+                    } else {
+                        addPost = true
+                    }
+                },
+                modifier = Modifier
+                    .size(100.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 20.dp, end = 20.dp),
+                containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+                elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
+            ) {
+                Text("Add Post")
+//                                Icon(Icons.Filled.Add, contentDescription = null)
+            }
         }
     }
 }
 
 @Composable
-fun ViewPosts(modifier: Modifier = Modifier, postsList: List<Post>) {
+fun ViewPosts(modifier: Modifier = Modifier, postsList: List<Post>,  navController: NavController, user: User?) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         content = {
@@ -233,16 +232,30 @@ fun ViewPosts(modifier: Modifier = Modifier, postsList: List<Post>) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp)
+                        .padding(14.dp)
+                        .border(
+                            width = 1.dp,
+                            color = Color.DarkGray,
+                            shape = RoundedCornerShape(8.dp)
+                        )
                 ) {
-                    Text(
-                        text = post.postContent,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = "By: ${post.user.displayName ?: post.user.username ?: "Unknown"}",
-                        color = Color.Gray
-                    )
+
+                    SinglePostMainPart(modifier, post = post, navController = navController)
+                    androidx.compose.foundation.text.ClickableText(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(4.dp),
+                        text = AnnotatedString("view comments"), onClick = {
+
+
+                            navController.currentBackStackEntry?.savedStateHandle?.let {
+                                it.set("post", post)
+                                user?.email?.let { email ->
+                                    it["email"] = email
+                                } ?: run { it["email"] = "" }
+                            }
+                            navController.navigate("singlePost")
+                    })
                 }
             }
             if (postsList.isEmpty()) {
@@ -259,6 +272,68 @@ fun ViewPosts(modifier: Modifier = Modifier, postsList: List<Post>) {
     )
 }
 
+@Composable
+fun SinglePostMainPart(modifier: Modifier, post: Post,  navController: NavController) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = {
+                post.user.email.let { email ->
+                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                        "userEmail",
+                        email
+                    )
+                    navController.navigate("profile")
+                }
+            }) {
+                Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+            }
+            Text(
+                text = post.user.displayName ?: post.user.username ?: "Unknown",
+                color = Color.Gray
+            )
+        }
+
+        ClickableText(
+            text = post.postContent
+        )
+    }
+
+}
+
+@Composable
+fun ClickableText(text: String) {
+    val uriHandler = LocalUriHandler.current
+    val annotatedString = buildAnnotatedString {
+        val urlPattern = Patterns.WEB_URL
+        val matcher = urlPattern.matcher(text)
+        var lastIndex = 0
+        while (matcher.find()) {
+            val start = matcher.start()
+            val end = matcher.end()
+            append(text.substring(lastIndex, start))
+            pushStringAnnotation(tag = "URL", annotation = matcher.group())
+            withStyle(style = SpanStyle(color = Color.Blue, textDecoration = TextDecoration.Underline)) {
+                append(matcher.group())
+            }
+            pop()
+            lastIndex = end
+        }
+        append(text.substring(lastIndex, text.length))
+    }
+
+    androidx.compose.foundation.text.ClickableText(
+        modifier = Modifier.padding(start = 12.dp),
+        text = annotatedString,
+        onClick = { offset ->
+
+            annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                .firstOrNull()?.let {
+                        stringAnnotation ->
+                    uriHandler.openUri(stringAnnotation.item)
+                }
+        }
+    )
+}
 
 //@Preview(showBackground = true)
 //@Composable

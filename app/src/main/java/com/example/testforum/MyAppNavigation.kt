@@ -10,10 +10,11 @@ import com.example.testforum.pages.HomePage
 import com.example.testforum.pages.LogInPage
 import com.example.testforum.pages.ProfilePage
 import com.example.testforum.pages.SignUpPage
+import com.example.testforum.pages.SinglePostPage
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
 @Composable
-fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, googleSignIn: () -> Unit, googleSignInClient: GoogleSignInClient){
+fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel, dataViewModel: DataViewModel, googleSignIn: () -> Unit, googleSignInClient: GoogleSignInClient){
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "home", builder = {
@@ -31,6 +32,9 @@ fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel,
             userEmail?.let {
                 ProfilePage(modifier, it, navController, authViewModel, googleSignInClient)
             }
+        }
+        composable("singlePost"){
+            SinglePostPage(modifier, navController, dataViewModel = dataViewModel)
         }
     })
 }

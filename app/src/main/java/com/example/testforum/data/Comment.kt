@@ -1,7 +1,11 @@
 package com.example.testforum.data
 
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentReference
+
 data class Comment (
-    val postId: Int,
+//    val postId: String = "",
     val commentContent: String = "",
-    val user: User = User()
+    val creationDate: Timestamp? = null,
+    val userReference: DocumentReference? = null
 )
