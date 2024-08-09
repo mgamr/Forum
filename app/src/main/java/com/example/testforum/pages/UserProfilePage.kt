@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
@@ -42,6 +43,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.testforum.AuthState
 import com.example.testforum.AuthViewModel
+import com.example.testforum.DataViewModel
 import com.example.testforum.R
 import com.example.testforum.data.Post
 import com.example.testforum.data.User
@@ -58,15 +60,16 @@ fun UserProfilePage(
     userEmail: String,
     navController: NavController,
     authViewModel: AuthViewModel,
-    googleSignInClient: GoogleSignInClient
+    googleSignInClient: GoogleSignInClient,
+    dataViewModel: DataViewModel
 ) {
     val db = Firebase.firestore
     val users = db.collection("users")
     val posts = db.collection("posts")
 
     var user by remember { mutableStateOf<User?>(null) }
-    val postsList = remember { mutableStateListOf<Post>() }
-
+//    val postsList = remember { mutableStateListOf<Post>() }
+    val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
     LaunchedEffect(userEmail) {
         users.document(userEmail).get().addOnSuccessListener { documentSnapshot ->
             user = documentSnapshot.toObject<User>()
@@ -76,17 +79,18 @@ fun UserProfilePage(
     }
 
     LaunchedEffect(userEmail) {
-        posts.whereEqualTo("user.email", userEmail).get()
-            .addOnSuccessListener { result ->
-                postsList.clear()
-                for (document in result) {
-                    val post = document.toObject(Post::class.java)
-                    postsList.add(post)
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.d(ContentValues.TAG, "Error getting documents: ", exception)
-            }
+//        posts.whereEqualTo("user.email", userEmail).get()
+//            .addOnSuccessListener { result ->
+//                postsList.clear()
+//                for (document in result) {
+//                    val post = document.toObject(Post::class.java)
+//                    postsList.add(post)
+//                }
+//            }
+//            .addOnFailureListener { exception ->
+//                Log.d(ContentValues.TAG, "Error getting documents: ", exception)
+//            }
+        dataViewModel.getPosts(userEmail)
     }
 
     val authState = authViewModel.authState.observeAsState()
@@ -127,7 +131,7 @@ fun UserProfilePage(
         )
 
         user?.let { UserProfile(it) }
-        ViewPosts(modifier = Modifier.padding(4.dp), postsList, navController, user)
+        ViewPosts(modifier = Modifier.padding(4.dp), postsWithUsersList, navController, authViewModel, dataViewModel)
     }
 }
 

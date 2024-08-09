@@ -1,9 +1,13 @@
 package com.example.testforum.pages
 
 import android.content.ContentValues.TAG
+import android.net.Uri
 import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
@@ -37,7 +42,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Recomposer
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
@@ -62,7 +70,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.testforum.AuthState
 import com.example.testforum.AuthViewModel
+import com.example.testforum.DataViewModel
+import com.example.testforum.MainActivity
 import com.example.testforum.data.Post
+import com.example.testforum.data.PostWithUser
 import com.example.testforum.data.User
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.firestore.ktx.firestore
@@ -70,62 +81,75 @@ import com.google.firebase.ktx.Firebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomePage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel, googleSignInClient: GoogleSignInClient) {
-    val authState = authViewModel.authState.observeAsState()
+fun HomePage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel, googleSignInClient: GoogleSignInClient) {
+    DisplayAndAdd(text = "Post", modifier = modifier, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient)
+}
+
+@Composable
+fun DisplayAndAdd(text: String, isForum: Boolean, modifier: Modifier, authViewModel: AuthViewModel, dataViewModel: DataViewModel, navController: NavController, googleSignInClient: GoogleSignInClient) {
     val user by authViewModel.user.observeAsState()
+    val authState = authViewModel.authState.observeAsState()
+    val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
 
-    val db = Firebase.firestore
-    val posts = db.collection("posts")
-    val postsList = remember { mutableStateListOf<Post>() }
-
-//    LaunchedEffect(authState.value) {
-//        when(authState.value){
-//            is AuthState.Unauthenticated -> navController.navigate("login")
-//            else -> Unit
-//        }
-//    }
-
-    LaunchedEffect(Unit) {
-        posts.get()
-            .addOnSuccessListener { result ->
-                for (document in result) {
-                    val post = document.toObject(Post::class.java).copy(postId = document.id)
-                    postsList.add(post)
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.d(TAG, "Error getting documents: ", exception)
-            }
+    DisposableEffect(Unit) {
+        dataViewModel.getPosts("")
+        onDispose {  }
     }
 
     var addPost by remember { mutableStateOf(false) }
     var newPostText by remember { mutableStateOf("") }
     val context = LocalContext.current
+    var selectedImageUris by remember {
+        mutableStateOf<List<Uri?>>(emptyList())
+    }
 
+    val multiplePhotosPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(),
+        onResult = {
+            selectedImageUris = it
+        }
+    )
     if (addPost) {
         AlertDialog(
             onDismissRequest = { addPost = false },
-            title = { Text(text = "Add Post") },
+            title = { Text(text = "Add $text") },
             text = {
-                TextField(
-                    value = newPostText,
-                    onValueChange = { newPostText = it },
-                    label = { Text(text = "Post Content") }
-                )
+                Column() {
+                    TextField(
+                        value = newPostText,
+                        onValueChange = { newPostText = it },
+                        label = { Text(text = "$text Content") }
+                    )
+                    Button(onClick = {
+                        multiplePhotosPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }) {
+                        Text("upload images")
+                    }
+                }
+
             },
             confirmButton = {
                 Button(
                     onClick = {
                         if (newPostText.isNotBlank()) {
 //                            viewModel.addNote(newPostText)
-                            val post = user?.let { Post(postContent = newPostText, user = it) }
-                            if (post != null) {
-//                                user?.username?.let { posts.add(post) }
-                                posts.add(post)
+//                            val post = user?.let { Post(postContent = newPostText, userReference = it) }
+//                            if (post != null) {
+////                                user?.username?.let { posts.add(post) }
+//                                posts.add(post)
+//                            }
+                            user?.let {
+                                dataViewModel.addPost(newPostText, user!!.email);
                             }
-                            Toast.makeText(context, "Added Post", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Added $text", Toast.LENGTH_SHORT).show()
                             newPostText = ""
                             addPost = false
+//                            navController.navigate("home") {
+//                                popUpTo("home") { inclusive = true }
+//                                launchSingleTop = true
+//                            }
                         }
                     }
                 ) {
@@ -139,8 +163,6 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
             }
         )
     }
-
-
     Scaffold() { innerPadding ->
         Box() {
             Column(
@@ -148,58 +170,10 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            "Forum",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
-                        }
-                    },
-                    actions = {
-                        if (authState.value is AuthState.Unauthenticated) {
-                            Button(
-                                onClick = { navController.navigate("login") },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-                                    contentColor = Color.Black
-                                ),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Text(text = "Log In")
-                            }
-                        }
-                        if (authState.value is AuthState.Authenticated) {
-                            IconButton(onClick = {
-                                user?.email?.let { email ->
-                                    navController.currentBackStackEntry?.savedStateHandle?.set(
-                                        "userEmail",
-                                        email
-                                    )
-                                    navController.navigate("profile")
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.AccountCircle,
-                                    contentDescription = null
-                                )
-                            }
-                            IconButton(onClick = { authViewModel.signout(googleSignInClient) }) {
-                                Icon(
-                                    imageVector = Icons.Default.ExitToApp,
-                                    contentDescription = null
-                                )
-                            }
-                        }
-                    }
-                )
-
-                ViewPosts(modifier = Modifier.padding(innerPadding), postsList, navController, user)
+                if(isForum) {
+                    TopBar("Forum", navController = navController, authViewModel = authViewModel, googleSignInClient = googleSignInClient)
+                    ViewPosts(modifier = Modifier.padding(innerPadding), postsWithUsersList, navController, authViewModel = authViewModel, dataViewModel = dataViewModel)
+                }
             }
             FloatingActionButton(
                 onClick = {
@@ -216,19 +190,85 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
                 containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
                 elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
             ) {
-                Text("Add Post")
+                Text("Add $text")
 //                                Icon(Icons.Filled.Add, contentDescription = null)
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ViewPosts(modifier: Modifier = Modifier, postsList: List<Post>,  navController: NavController, user: User?) {
+fun TopBar(text: String, navController: NavController, authViewModel: AuthViewModel, googleSignInClient: GoogleSignInClient) {
+    val authState = authViewModel.authState.observeAsState()
+    val user by authViewModel.user.observeAsState()
+    TopAppBar(
+        title = {
+            Text(
+                text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = {
+                if(!navController.popBackStack()) {
+                    val activity: MainActivity = MainActivity()
+                    // on below line we are finishing activity.
+                    activity.finish()
+                    java.lang.System.exit(0)
+                }
+            }) {
+                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
+            }
+        },
+        actions = {
+            if (authState.value is AuthState.Unauthenticated) {
+                Button(
+                    onClick = { navController.navigate("login") },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(text = "Log In")
+                }
+            }
+            if (authState.value is AuthState.Authenticated) {
+                IconButton(onClick = {
+                    user?.email?.let { email ->
+                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                            "userEmail",
+                            email
+                        )
+                        navController.navigate("profile")
+                    }
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = null
+                    )
+                }
+                IconButton(onClick = { authViewModel.signout(googleSignInClient) }) {
+                    Icon(
+                        imageVector = Icons.Default.ExitToApp,
+                        contentDescription = null
+                    )
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun ViewPosts(modifier: Modifier = Modifier, postsWithUsersList: List<PostWithUser>, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel) {
+    val user by authViewModel.user.observeAsState()
+    val authState = authViewModel.authState.observeAsState()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         content = {
-            items(postsList) { post ->
+            items(postsWithUsersList) { postWithUser ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -239,26 +279,30 @@ fun ViewPosts(modifier: Modifier = Modifier, postsList: List<Post>,  navControll
                             shape = RoundedCornerShape(8.dp)
                         )
                 ) {
-
-                    SinglePostMainPart(modifier, post = post, navController = navController)
+                    var deletable = false
+                    if(authState.value is AuthState.Authenticated) {
+                        user?.let {
+                            if(it.moderator and isUnacceptable(postWithUser.post.postContent)) deletable = true
+                            if(it.email == postWithUser.user.email) deletable = true
+                        }
+                    }
+                    SinglePostMainPart(modifier, postWithUser = postWithUser, navController = navController, deletable = deletable, dataViewModel = dataViewModel)
                     androidx.compose.foundation.text.ClickableText(
                         modifier = Modifier
                             .align(Alignment.End)
                             .padding(4.dp),
                         text = AnnotatedString("view comments"), onClick = {
-
-
                             navController.currentBackStackEntry?.savedStateHandle?.let {
-                                it.set("post", post)
-                                user?.email?.let { email ->
-                                    it["email"] = email
-                                } ?: run { it["email"] = "" }
+                                it["postWithUser"] = postWithUser
+//                                postWithUser.user.email.let { email ->
+//                                    it["email"] = email
+//                                }
                             }
                             navController.navigate("singlePost")
                     })
                 }
             }
-            if (postsList.isEmpty()) {
+            if (postsWithUsersList.isEmpty()) {
                 item {
                     Text(
                         modifier = Modifier.fillMaxWidth(),
@@ -272,25 +316,41 @@ fun ViewPosts(modifier: Modifier = Modifier, postsList: List<Post>,  navControll
     )
 }
 
+fun isUnacceptable(postContent: String): Boolean {
+    return postContent.contains("I'm a bully", true)
+
+}
+
 @Composable
-fun SinglePostMainPart(modifier: Modifier, post: Post,  navController: NavController) {
+fun SinglePostMainPart(modifier: Modifier, postWithUser: PostWithUser,  navController: NavController, deletable: Boolean, dataViewModel: DataViewModel) {
+    val context = LocalContext.current
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {
-                post.user.email.let { email ->
+                postWithUser.user.email.let { email ->
                     navController.navigate("userProfile/$email")
                 }
             }) {
                 Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
             }
             Text(
-                text = post.user.displayName ?: post.user.username ?: "Unknown",
+                text = postWithUser.user.displayName ?: postWithUser.user.username ?: "Unknown",
                 color = Color.Gray
             )
+            if(deletable) {
+                IconButton(onClick = {
+                    dataViewModel.removePost(postWithUser.post.postId)
+                    Toast.makeText(context, "Post deleted", Toast.LENGTH_SHORT).show()
+//                    navController.navigate("home")
+                }) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = null)
+                }
+            }
+
         }
 
         ClickableText(
-            text = post.postContent
+            text = postWithUser.post.postContent
         )
     }
 

@@ -34,7 +34,8 @@ fun MyAppNavigation(
         composable("signup") {
             SignUpPage(modifier, navController, authViewModel)
         }
-        composable("home") {
+
+        composable("home"){
             HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient)
         }
         composable("profile") {
@@ -44,8 +45,8 @@ fun MyAppNavigation(
                 ProfilePage(modifier, it, navController, authViewModel, googleSignInClient)
             }
         }
-        composable("singlePost") {
-            SinglePostPage(modifier, navController, dataViewModel = dataViewModel)
+        composable("singlePost"){
+            SinglePostPage(modifier, navController, dataViewModel = dataViewModel, authViewModel = authViewModel, googleSignInClient = googleSignInClient)
         }
         composable(
             "userProfile/{userEmail}",
@@ -53,7 +54,7 @@ fun MyAppNavigation(
         ) { backStackEntry ->
             val userEmail = backStackEntry.arguments?.getString("userEmail")
             userEmail?.let {
-                UserProfilePage(modifier, it, navController, authViewModel, googleSignInClient)
+                UserProfilePage(modifier, it, navController, authViewModel, googleSignInClient, dataViewModel)
             }
         }
         composable("topics") {
