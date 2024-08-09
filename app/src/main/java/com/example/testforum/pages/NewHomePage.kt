@@ -92,7 +92,7 @@ fun DisplayAndAdd(text: String, isForum: Boolean, modifier: Modifier, authViewMo
     val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
 
     DisposableEffect(Unit) {
-        dataViewModel.getPosts()
+        dataViewModel.getPosts("")
         onDispose {  }
     }
 
@@ -146,10 +146,10 @@ fun DisplayAndAdd(text: String, isForum: Boolean, modifier: Modifier, authViewMo
                             Toast.makeText(context, "Added $text", Toast.LENGTH_SHORT).show()
                             newPostText = ""
                             addPost = false
-                            navController.navigate("home") {
-                                popUpTo("home") { inclusive = true }
-                                launchSingleTop = true
-                            }
+//                            navController.navigate("home") {
+//                                popUpTo("home") { inclusive = true }
+//                                launchSingleTop = true
+//                            }
                         }
                     }
                 ) {
@@ -341,7 +341,7 @@ fun SinglePostMainPart(modifier: Modifier, postWithUser: PostWithUser,  navContr
                 IconButton(onClick = {
                     dataViewModel.removePost(postWithUser.post.postId)
                     Toast.makeText(context, "Post deleted", Toast.LENGTH_SHORT).show()
-                    navController.navigate("home")
+//                    navController.navigate("home")
                 }) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = null)
                 }

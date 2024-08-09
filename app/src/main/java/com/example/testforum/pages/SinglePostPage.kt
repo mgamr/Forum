@@ -85,7 +85,7 @@ fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewMod
                             navController.currentBackStackEntry?.savedStateHandle?.let {
                                 it["postWithUser"] = postWithUser
                             }
-                            navController.navigate("singlePost")
+//                            navController.navigate("singlePost")
 //                            {
 //                                popUpTo("singlePost") { inclusive = true }
 //                                launchSingleTop = true
@@ -171,11 +171,7 @@ fun CommentItem(commentWithUser: CommentWithUser, navController: NavController, 
     Row() {
         IconButton(onClick = {
             commentWithUser.user.email.let { email ->
-                navController.currentBackStackEntry?.savedStateHandle?.set(
-                    "userEmail",
-                    email
-                )
-                navController.navigate("profile")
+                navController.navigate("profile/$email")
             }
         }) {
             Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
@@ -193,11 +189,7 @@ fun CommentItem(commentWithUser: CommentWithUser, navController: NavController, 
         if(deletable) {
             IconButton(onClick = {
                 commentWithUser.user.email.let { email ->
-                    navController.currentBackStackEntry?.savedStateHandle?.set(
-                        "userEmail",
-                        email
-                    )
-                    navController.navigate("profile")
+                    navController.navigate("profile/$email")
                 }
             }) {
                 Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)

@@ -53,7 +53,7 @@ fun MyAppNavigation(
         ) { backStackEntry ->
             val userEmail = backStackEntry.arguments?.getString("userEmail")
             userEmail?.let {
-                UserProfilePage(modifier, it, navController, authViewModel, googleSignInClient)
+                UserProfilePage(modifier, it, navController, authViewModel, googleSignInClient, dataViewModel)
             }
         }
     })
