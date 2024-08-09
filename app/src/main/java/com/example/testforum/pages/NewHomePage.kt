@@ -328,11 +328,7 @@ fun SinglePostMainPart(modifier: Modifier, postWithUser: PostWithUser,  navContr
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {
                 postWithUser.user.email.let { email ->
-                    navController.currentBackStackEntry?.savedStateHandle?.set(
-                        "userEmail",
-                        email
-                    )
-                    navController.navigate("profile")
+                    navController.navigate("userProfile/$email")
                 }
             }) {
                 Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
