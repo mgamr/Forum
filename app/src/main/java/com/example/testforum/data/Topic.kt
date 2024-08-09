@@ -1,7 +1,7 @@
 package com.example.testforum.data
 
-data class Topic (
-    val topicId: Int,
-    val parentTopicId: Int,
-    val topicName: String
+data class Topic(
+    val id: String = "",
+    val name: String = "",
+    val subtopics: Map<String, Topic>? = null
 )
