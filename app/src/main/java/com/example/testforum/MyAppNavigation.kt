@@ -25,7 +25,8 @@ fun MyAppNavigation(
     authViewModel: AuthViewModel,
     dataViewModel: DataViewModel,
     googleSignIn: () -> Unit,
-    googleSignInClient: GoogleSignInClient
+    googleSignInClient: GoogleSignInClient,
+    topicViewModel: TopicViewModel
 ) {
     val navController = rememberNavController()
 
@@ -38,7 +39,7 @@ fun MyAppNavigation(
         }
 
         composable("home") {
-            HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient)
+            HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient, topicViewModel)
         }
         composable("profile") {
             val userEmail =
@@ -81,7 +82,7 @@ fun MyAppNavigation(
         ) { backStackEntry ->
             val topicName = backStackEntry.arguments?.getString("topicName")
             topicName?.let {
-                PostsPage(modifier, it, navController, authViewModel, dataViewModel, googleSignInClient)
+                PostsPage(modifier, it, navController, authViewModel, dataViewModel, googleSignInClient, topicViewModel)
             }
         }
     })

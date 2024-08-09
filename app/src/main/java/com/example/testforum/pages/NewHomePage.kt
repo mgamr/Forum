@@ -1,6 +1,5 @@
 package com.example.testforum.pages
 
-import android.content.ContentValues.TAG
 import android.net.Uri
 import android.util.Log
 import android.util.Patterns
@@ -9,7 +8,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,12 +24,13 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -44,18 +42,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -72,21 +67,21 @@ import com.example.testforum.AuthState
 import com.example.testforum.AuthViewModel
 import com.example.testforum.DataViewModel
 import com.example.testforum.MainActivity
-import com.example.testforum.data.Post
+import com.example.testforum.TopicRepository
+import com.example.testforum.TopicViewModel
 import com.example.testforum.data.PostWithUser
-import com.example.testforum.data.User
+import com.example.testforum.data.Topic
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomePage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel, googleSignInClient: GoogleSignInClient) {
-    DisplayAndAdd(text = "Post", modifier = modifier, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient)
+fun HomePage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel, googleSignInClient: GoogleSignInClient, topicViewModel: TopicViewModel) {
+    DisplayAndAdd(text = "Post", modifier = modifier, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient, topicViewModel = topicViewModel)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, modifier: Modifier, authViewModel: AuthViewModel, dataViewModel: DataViewModel, navController: NavController, googleSignInClient: GoogleSignInClient) {
+fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, modifier: Modifier, authViewModel: AuthViewModel, dataViewModel: DataViewModel, navController: NavController, googleSignInClient: GoogleSignInClient, topicViewModel: TopicViewModel) {
     val user by authViewModel.user.observeAsState()
     val authState = authViewModel.authState.observeAsState()
     val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
@@ -102,6 +97,21 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
     var selectedImageUris by remember {
         mutableStateOf<List<Uri?>>(emptyList())
     }
+    var topics  by remember { mutableStateOf(listOf("Choose a topic")) }
+    LaunchedEffect(Unit) {
+        try{
+            topics = topicViewModel.getAllTopicNames()
+        }  catch (e: Exception) {
+            Log.e("topic dropdownmenu", "Error fetching topic names", e)
+        }
+    }
+
+    var isExpanded by remember {
+        mutableStateOf(false)
+    }
+    var selectedTopic by remember {
+        mutableStateOf(topics[0])
+    }
 
     val multiplePhotosPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(),
@@ -115,6 +125,23 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
             title = { Text(text = "Add $text") },
             text = {
                 Column() {
+
+                    ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = { isExpanded = !isExpanded }) {
+                        TextField(value = selectedTopic, onValueChange = {}, readOnly = true, trailingIcon = {ExposedDropdownMenuDefaults.TrailingIcon(
+                            expanded = isExpanded
+                        )}, modifier = Modifier.menuAnchor())
+                        ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
+                            topics.forEachIndexed { index, s ->
+                                DropdownMenuItem(text = { Text(text = s) },
+                                    onClick = {
+                                        selectedTopic = topics[index]
+                                        isExpanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding)
+                            }
+                        }
+                    }
+
                     TextField(
                         value = newPostText,
                         onValueChange = { newPostText = it },
@@ -141,7 +168,7 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
 //                                posts.add(post)
 //                            }
                             user?.let {
-                                dataViewModel.addPost(newPostText, user!!.email);
+                                dataViewModel.addPost(newPostText, user!!.email, topic = selectedTopic);
                             }
                             Toast.makeText(context, "Added $text", Toast.LENGTH_SHORT).show()
                             newPostText = ""

@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private val authViewModel: AuthViewModel by viewModels()
     private val dataViewModel: DataViewModel by viewModels()
+    private val topicViewModel: TopicViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,7 +61,8 @@ class MainActivity : ComponentActivity() {
                         authViewModel = authViewModel,
                         dataViewModel = dataViewModel,
                         googleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
-                        googleSignInClient = googleSignInClient
+                        googleSignInClient = googleSignInClient,
+                        topicViewModel = topicViewModel
                     )
                 }
             }

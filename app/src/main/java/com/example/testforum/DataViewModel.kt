@@ -1,8 +1,6 @@
 package com.example.testforum
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.testforum.data.Comment
 import com.example.testforum.data.CommentWithUser
@@ -13,7 +11,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -194,8 +191,8 @@ class DataViewModel : ViewModel() {
         }
     }
 
-    fun addPost(newPostText: String, email: String) {
-        db.collection("posts").add(Post(postContent = newPostText, userReference = db.collection("users").document(email), creationDate = Timestamp.now()))
+    fun addPost(newPostText: String, email: String, topic: String) {
+        db.collection("posts").add(Post(postContent = newPostText, userReference = db.collection("users").document(email), creationDate = Timestamp.now(), topicName = topic))
     }
 
     fun addComment(postId: String, newCommentText: String, email: String) {
