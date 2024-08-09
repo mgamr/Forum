@@ -25,7 +25,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel,
             SignUpPage(modifier, navController, authViewModel)
         }
         composable("home"){
-            HomePage(modifier, navController, authViewModel, googleSignInClient)
+            HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient)
         }
         composable("profile") {
             val userEmail = navController.previousBackStackEntry?.savedStateHandle?.get<String>("userEmail")
@@ -34,7 +34,7 @@ fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel,
             }
         }
         composable("singlePost"){
-            SinglePostPage(modifier, navController, dataViewModel = dataViewModel)
+            SinglePostPage(modifier, navController, dataViewModel = dataViewModel, authViewModel = authViewModel, googleSignInClient = googleSignInClient)
         }
     })
 }
