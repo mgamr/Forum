@@ -86,13 +86,13 @@ fun HomePage(modifier: Modifier = Modifier, navController: NavController, authVi
 }
 
 @Composable
-fun DisplayAndAdd(text: String, isForum: Boolean, modifier: Modifier, authViewModel: AuthViewModel, dataViewModel: DataViewModel, navController: NavController, googleSignInClient: GoogleSignInClient) {
+fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, modifier: Modifier, authViewModel: AuthViewModel, dataViewModel: DataViewModel, navController: NavController, googleSignInClient: GoogleSignInClient) {
     val user by authViewModel.user.observeAsState()
     val authState = authViewModel.authState.observeAsState()
     val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
 
     DisposableEffect(Unit) {
-        dataViewModel.getPosts("")
+        dataViewModel.getPosts("", topicName)
         onDispose {  }
     }
 
@@ -172,6 +172,9 @@ fun DisplayAndAdd(text: String, isForum: Boolean, modifier: Modifier, authViewMo
             ) {
                 if(isForum) {
                     TopBar("Forum", navController = navController, authViewModel = authViewModel, googleSignInClient = googleSignInClient)
+                    Button(onClick = { navController.navigate("topics") }) {
+                        Text(text = "View topics")
+                    }
                     ViewPosts(modifier = Modifier.padding(innerPadding), postsWithUsersList, navController, authViewModel = authViewModel, dataViewModel = dataViewModel)
                 }
             }

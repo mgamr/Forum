@@ -138,6 +138,49 @@ class DataViewModel : ViewModel() {
             }
     }
 
+    fun getPosts(userEmail: String, topicName: String ?= null) {
+        val postsList = mutableListOf<PostWithUser>()
+        var query: Query = db.collection("posts").orderBy("creationDate", Query.Direction.DESCENDING)
+
+        if (topicName != null) {
+            query = query.whereEqualTo("topicName", topicName)
+        }
+
+        query.addSnapshotListener { result, e ->
+
+                e?.let {
+                    Log.w("PostViewModel", "Error getting posts", e)
+                    return@addSnapshotListener
+                }
+
+                postsList.clear()
+                _postsWithUsers.value = postsList
+                result?.let { snapshot ->
+                    snapshot.documents.map { document ->
+                        val post = document.toObject(Post::class.java)?.copy(postId = document.id)
+                        val userReference = post?.userReference
+
+                        userReference?.let {
+                            it.addSnapshotListener { userSnapshot, e ->
+                                e?.let {
+                                    Log.w("PostViewModel", "Error getting user data", e)
+                                    return@addSnapshotListener
+                                }
+                                val user = userSnapshot?.toObject(User::class.java)
+                                user?.let{
+                                    if(userEmail == "" || user.email == userEmail) {
+                                        postsList.add(PostWithUser(post, user))
+                                        if (postsList.size == result.size()) {
+                                            _postsWithUsers.value = postsList
+                                        }
+                                    }
+                                }
+                            }
+                        } }
+                }
+            }
+    }
+
 
     fun getUserByReference(userReference: DocumentReference?) { // tu useri washlilia ra qnas
         userReference?.let { documentReference ->

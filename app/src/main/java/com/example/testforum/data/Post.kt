@@ -8,5 +8,6 @@ data class Post (
     val postId: String = "",
     val postContent: String = "",
     val userReference: DocumentReference? = null,
-    val creationDate: Timestamp? = null
+    val creationDate: Timestamp? = null,
+    val topicName: String = ""
 ): Serializable
