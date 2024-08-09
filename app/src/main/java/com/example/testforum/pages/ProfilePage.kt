@@ -203,6 +203,9 @@ fun ProfilePage(
         Button(onClick = { editUser = true }) {
             Text(text = "Edit")
         }
+        Button(onClick = { navController.navigate("userProfile/" + user?.email) }) {
+            Text(text = "View my profile as guest")
+        }
     }
 }
 

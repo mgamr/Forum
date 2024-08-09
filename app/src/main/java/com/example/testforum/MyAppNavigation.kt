@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.testforum.data.User
+import com.example.testforum.pages.ExpandableTopicList
 import com.example.testforum.pages.HomePage
 import com.example.testforum.pages.LogInPage
 import com.example.testforum.pages.ProfilePage
@@ -33,9 +34,9 @@ fun MyAppNavigation(
         composable("signup") {
             SignUpPage(modifier, navController, authViewModel)
         }
+
         composable("home"){
             HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient)
-
         }
         composable("profile") {
             val userEmail =
@@ -55,6 +56,9 @@ fun MyAppNavigation(
             userEmail?.let {
                 UserProfilePage(modifier, it, navController, authViewModel, googleSignInClient, dataViewModel)
             }
+        }
+        composable("topics") {
+            ExpandableTopicList()
         }
     })
 }
