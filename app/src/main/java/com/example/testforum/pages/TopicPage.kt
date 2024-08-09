@@ -18,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,12 +26,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.testforum.DataViewModel
 import com.example.testforum.TopicRepository
 import com.example.testforum.data.Topic
 
 
 @Composable
-fun ExpandableTopicList() {
+fun ExpandableTopicList(navController: NavController,) {
     val topicRepository = TopicRepository()
     var topics by remember { mutableStateOf(emptyList<Topic>()) }
 
@@ -45,7 +48,9 @@ fun ExpandableTopicList() {
     if (topics.isNotEmpty()) {
         LazyColumn {
             items(topics) { topic ->
-                ExpandableTopicItem(topic)
+                ExpandableTopicItem(topic){ topicName ->
+                    navController.navigate("posts/$topicName")
+                }
             }
         }
     } else {
@@ -55,7 +60,7 @@ fun ExpandableTopicList() {
 
 
 @Composable
-fun ExpandableTopicItem(topic: Topic) {
+fun ExpandableTopicItem(topic: Topic,onTopicClick: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val isExpandable = topic.subtopics?.isNotEmpty() == true
 
@@ -84,6 +89,7 @@ fun ExpandableTopicItem(topic: Topic) {
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)
+                    .clickable { onTopicClick(topic.name) }
             )
         }
 
@@ -91,7 +97,7 @@ fun ExpandableTopicItem(topic: Topic) {
             topic.subtopics?.let { subtopicsMap ->
                 Column(modifier = Modifier.padding(start = 32.dp)) {
                     subtopicsMap.forEach { (_, subtopic) ->
-                        ExpandableTopicItem(subtopic)
+                        ExpandableTopicItem(subtopic, onTopicClick)
                     }
                 }
             }

@@ -11,10 +11,12 @@ import com.example.testforum.data.User
 import com.example.testforum.pages.ExpandableTopicList
 import com.example.testforum.pages.HomePage
 import com.example.testforum.pages.LogInPage
+import com.example.testforum.pages.PostsPage
 import com.example.testforum.pages.ProfilePage
 import com.example.testforum.pages.SignUpPage
 import com.example.testforum.pages.SinglePostPage
 import com.example.testforum.pages.UserProfilePage
+import com.example.testforum.pages.ViewPosts
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
 @Composable
@@ -35,7 +37,7 @@ fun MyAppNavigation(
             SignUpPage(modifier, navController, authViewModel)
         }
 
-        composable("home"){
+        composable("home") {
             HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient)
         }
         composable("profile") {
@@ -45,8 +47,14 @@ fun MyAppNavigation(
                 ProfilePage(modifier, it, navController, authViewModel, googleSignInClient)
             }
         }
-        composable("singlePost"){
-            SinglePostPage(modifier, navController, dataViewModel = dataViewModel, authViewModel = authViewModel, googleSignInClient = googleSignInClient)
+        composable("singlePost") {
+            SinglePostPage(
+                modifier,
+                navController,
+                dataViewModel = dataViewModel,
+                authViewModel = authViewModel,
+                googleSignInClient = googleSignInClient
+            )
         }
         composable(
             "userProfile/{userEmail}",
@@ -54,11 +62,27 @@ fun MyAppNavigation(
         ) { backStackEntry ->
             val userEmail = backStackEntry.arguments?.getString("userEmail")
             userEmail?.let {
-                UserProfilePage(modifier, it, navController, authViewModel, googleSignInClient, dataViewModel)
+                UserProfilePage(
+                    modifier,
+                    it,
+                    navController,
+                    authViewModel,
+                    googleSignInClient,
+                    dataViewModel
+                )
             }
         }
         composable("topics") {
-            ExpandableTopicList()
+            ExpandableTopicList(navController)
+        }
+        composable(
+            "posts/{topicName}",
+            arguments = listOf(navArgument("topicName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val topicName = backStackEntry.arguments?.getString("topicName")
+            topicName?.let {
+                PostsPage(modifier, it, navController, authViewModel, dataViewModel, googleSignInClient)
+            }
         }
     })
 }
