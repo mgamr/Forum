@@ -18,7 +18,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,12 +26,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.testforum.AuthViewModel
-import com.example.testforum.DataViewModel
-import com.example.testforum.TopicRepository
-import com.example.testforum.TopicViewModel
+import com.example.testforum.viewmodels.AuthViewModel
+import com.example.testforum.repositories.TopicRepository
+import com.example.testforum.viewmodels.TopicViewModel
 import com.example.testforum.data.Topic
-import kotlinx.coroutines.launch
 
 
 @Composable
@@ -41,12 +38,11 @@ fun ExpandableTopicList(
     authViewModel: AuthViewModel,
     topicViewModel: TopicViewModel
 ) {
-    val topicRepository = TopicRepository()
     var topics by remember { mutableStateOf(emptyList<Topic>()) }
 
     LaunchedEffect(Unit) {
         try {
-            topics = topicRepository.fetchTopics()
+            topics = topicViewModel.fetchTopics()
         } catch (e: Exception) {
             Log.e("ExpandableList", "Error fetching topics", e)
         }
@@ -106,7 +102,7 @@ fun ExpandableTopicItem(
                     .weight(1f)
                     .padding(start = 8.dp)
                     .clickable {
-                        val topicNames = collectTopicNames(topic)
+                        val topicNames = topicViewModel.collectTopicNames(topic)
                         onTopicClick(topicNames)
                     }
             )
@@ -126,17 +122,3 @@ fun ExpandableTopicItem(
     }
 }
 
-fun collectTopicNames(topic: Topic): List<String> {
-    val topicNames = mutableListOf<String>()
-
-
-    fun collectNamesRecursively(currentTopic: Topic) {
-        topicNames.add(currentTopic.name)
-        currentTopic.subtopics?.values?.forEach { subtopic ->
-            collectNamesRecursively(subtopic)
-        }
-    }
-
-    collectNamesRecursively(topic)
-    return topicNames
-}

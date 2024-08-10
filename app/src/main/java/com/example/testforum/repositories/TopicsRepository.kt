@@ -1,4 +1,4 @@
-package com.example.testforum
+package com.example.testforum.repositories
 
 import android.util.Log
 import com.example.testforum.data.Topic
@@ -22,21 +22,9 @@ class TopicRepository {
 
     suspend fun addTopic(topic: Topic, parentTopicId: String? = null) {
         try {
-//            if (parentTopicId == null) {
-//                val newTopicRef = topicsRef.push() // Generates a new unique key
-//                topic.id = newTopicRef.key ?: ""
-//                newTopicRef.setValue(topic).await()
-//            } else {
-//                val parentTopicRef = topicsRef.child(parentTopicId).child("subtopics").push()
-//                topic.id = parentTopicRef.key ?: ""
-//                parentTopicRef.setValue(topic).await()
-//            }
-
             val newTopicRef = if (parentTopicId == null) {
-                // If no parent ID is provided, add as a top-level topic
                 topicsRef.push().also { topic.id = it.key ?: "" }
             } else {
-                // If a parent ID is provided, find the correct parent topic
                 val parentTopicRef = findSubtopicReference(topicsRef, parentTopicId)
                 parentTopicRef?.child("subtopics")?.push()?.also { topic.id = it.key ?: "" }
             }
@@ -53,7 +41,7 @@ class TopicRepository {
         snapshot.children.forEach { childSnapshot ->
             val topic = childSnapshot.getValue(Topic::class.java)
             if (topic?.id == targetId) {
-                return childSnapshot.ref // Return the DatabaseReference of the matched subtopic
+                return childSnapshot.ref
             } else {
                 topic?.subtopics?.let {
                     val subtopicRef =

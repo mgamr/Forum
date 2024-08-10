@@ -1,17 +1,18 @@
 package com.example.testforum.pages
 
+import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
@@ -19,7 +20,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -34,15 +34,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.testforum.AuthState
-import com.example.testforum.AuthViewModel
-import com.example.testforum.DataViewModel
+import com.example.testforum.viewmodels.AuthState
+import com.example.testforum.viewmodels.AuthViewModel
+import com.example.testforum.viewmodels.DataViewModel
 import com.example.testforum.data.Comment
 import com.example.testforum.data.CommentWithUser
-import com.example.testforum.data.Post
 import com.example.testforum.data.PostWithUser
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
@@ -50,7 +53,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 @Composable
 fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewModel: DataViewModel, authViewModel: AuthViewModel, googleSignInClient: GoogleSignInClient) {
     val postWithUser = navController.previousBackStackEntry?.savedStateHandle?.get<PostWithUser>("postWithUser")
-//    val userEmail = navController.previousBackStackEntry?.savedStateHandle?.get<PostWithUser>("userEmail")
     val commentWithUser by dataViewModel.commentsWithUsers.collectAsState()
 
     val user by authViewModel.user.observeAsState()
@@ -85,11 +87,6 @@ fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewMod
                             navController.currentBackStackEntry?.savedStateHandle?.let {
                                 it["postWithUser"] = postWithUser
                             }
-//                            navController.navigate("singlePost")
-//                            {
-//                                popUpTo("singlePost") { inclusive = true }
-//                                launchSingleTop = true
-//                            }
                         }
                     }
                 ) {
@@ -136,7 +133,6 @@ fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewMod
                     }
                 }
                 CommentItem(commentWithUser = commentWithUser, navController = navController, deletable = deletable2)
-//            DisplayComment(modifier, comment = comment, dataViewModel = dataViewModel, navController = navController)
             }
         }
         FloatingActionButton(
@@ -155,19 +151,12 @@ fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewMod
             elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
         ) {
             Text("Add Comment")
-//                                Icon(Icons.Filled.Add, contentDescription = null)
         }
     }
-
-
 }
 
 @Composable
 fun CommentItem(commentWithUser: CommentWithUser, navController: NavController, deletable: Boolean) {
-//    Column(modifier = Modifier.padding(8.dp)) {
-//        Text(text = commentWithUser.user.displayName, fontWeight = FontWeight.Bold)
-//        Text(text = commentWithUser.comment.)
-//    }
     Row() {
         IconButton(onClick = {
             commentWithUser.user.email.let { email ->
@@ -229,4 +218,83 @@ fun DisplayComment(modifier: Modifier, comment: Comment, dataViewModel: DataView
 
     }
 
+}
+
+@Composable
+fun SinglePostMainPart(
+    modifier: Modifier,
+    postWithUser: PostWithUser,
+    navController: NavController,
+    deletable: Boolean,
+    dataViewModel: DataViewModel
+) {
+    val context = LocalContext.current
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = {
+                postWithUser.user.email.let { email ->
+                    navController.navigate("userProfile/$email")
+                }
+            }) {
+                Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+            }
+            Text(
+                text = postWithUser.user.displayName ?: postWithUser.user.username ?: "Unknown",
+                color = Color.Gray
+            )
+            if (deletable) {
+                IconButton(onClick = {
+                    dataViewModel.removePost(postWithUser.post.postId)
+                    Toast.makeText(context, "Post deleted", Toast.LENGTH_SHORT).show()
+                }) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = null)
+                }
+            }
+
+        }
+
+        ClickableText(
+            text = postWithUser.post.postContent
+        )
+    }
+
+}
+
+@Composable
+fun ClickableText(text: String) {
+    val uriHandler = LocalUriHandler.current
+    val annotatedString = buildAnnotatedString {
+        val urlPattern = Patterns.WEB_URL
+        val matcher = urlPattern.matcher(text)
+        var lastIndex = 0
+        while (matcher.find()) {
+            val start = matcher.start()
+            val end = matcher.end()
+            append(text.substring(lastIndex, start))
+            pushStringAnnotation(tag = "URL", annotation = matcher.group())
+            withStyle(
+                style = SpanStyle(
+                    color = Color.Blue,
+                    textDecoration = TextDecoration.Underline
+                )
+            ) {
+                append(matcher.group())
+            }
+            pop()
+            lastIndex = end
+        }
+        append(text.substring(lastIndex, text.length))
+    }
+
+    androidx.compose.foundation.text.ClickableText(
+        modifier = Modifier.padding(start = 12.dp),
+        text = annotatedString,
+        onClick = { offset ->
+
+            annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                .firstOrNull()?.let { stringAnnotation ->
+                    uriHandler.openUri(stringAnnotation.item)
+                }
+        }
+    )
 }

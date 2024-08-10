@@ -1,4 +1,4 @@
-package com.example.testforum
+package com.example.testforum.viewmodels
 
 import android.util.Log
 import androidx.lifecycle.LiveData
@@ -63,37 +63,10 @@ class AuthViewModel : ViewModel() {
                 .addOnFailureListener { e ->
                     Log.w("AuthViewModel", "Error getting document", e)
                 }
-//            val userData = mutableMapOf<String, Any>()
-//
-//            currentUser.email?.let {
-//                userData["email"] = it
-//            }
-//            currentUser.displayName?.let {
-//                userData["username"] = it
-//                userData["displayName"] = it
-//            }
-//            currentUser.photoUrl?.toString()?.let {
-//                userData["profilePicture"] = it
-//            }
-//
-//            _user.value = User(
-//                email = currentUser.email ?: "",
-//                username = currentUser.displayName,
-//                displayName = currentUser.displayName,
-//                profilePicture = currentUser.photoUrl?.toString()
-//            )
-//
-//            db.collection("users").document(currentUser.email ?: "").set(userData, SetOptions.merge())
-//                .addOnSuccessListener {
-//                    Log.d("AuthViewModel", "User data successfully written!")
-//                }
-//                .addOnFailureListener { e ->
-//                    Log.w("AuthViewModel", "Error writing document", e)
-//                }
         }
     }
 
-    fun checkAuthStatus(){
+    private fun checkAuthStatus(){
         if(auth.currentUser == null) {
             _authState.value = AuthState.Unauthenticated
         } else {
@@ -114,7 +87,8 @@ class AuthViewModel : ViewModel() {
                     _authState.value = AuthState.Authenticated
                     updateUser()
                 } else {
-                    _authState.value = AuthState.Error(task.exception?.message?:"Something went wrong")
+                    _authState.value =
+                        AuthState.Error(task.exception?.message ?: "Something went wrong")
                 }
             }
     }
@@ -145,14 +119,13 @@ class AuthViewModel : ViewModel() {
                             Log.w("AuthViewModel", "Error writing document", e)
                         }
                 } else {
-                    _authState.value = AuthState.Error(task.exception?.message?:"Something went wrong")
+                    _authState.value =
+                        AuthState.Error(task.exception?.message ?: "Something went wrong")
                 }
             }
     }
 
     fun signout(googleSignInClient: GoogleSignInClient){
-//        auth.signOut()
-//        _authState.value = AuthState.Unauthenticated
         auth.signOut()
         googleSignInClient.signOut().addOnCompleteListener {
             _authState.value = AuthState.Unauthenticated
@@ -168,7 +141,8 @@ class AuthViewModel : ViewModel() {
                     _authState.value = AuthState.Authenticated
                     updateUser()
                 } else {
-                    _authState.value = AuthState.Error(task.exception?.message ?: "Authentication failed")
+                    _authState.value =
+                        AuthState.Error(task.exception?.message ?: "Authentication failed")
                 }
             }
     }
@@ -184,16 +158,17 @@ class AuthViewModel : ViewModel() {
                 if (task.isSuccessful) {
                     _authState.value = AuthState.Message("Password reset email sent")
                 } else {
-                    _authState.value = AuthState.Error(task.exception?.message ?: "Failed to send reset email")
+                    _authState.value =
+                        AuthState.Error(task.exception?.message ?: "Failed to send reset email")
                 }
             }
     }
 }
 
 sealed class AuthState{
-    object Authenticated : AuthState()
-    object Unauthenticated : AuthState()
-    object Loading : AuthState()
+    data object Authenticated : AuthState()
+    data object Unauthenticated : AuthState()
+    data object Loading : AuthState()
     data class Error(val message: String) : AuthState()
     data class Message(val message: String) : AuthState()
 }

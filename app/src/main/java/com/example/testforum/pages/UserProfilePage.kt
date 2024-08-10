@@ -1,6 +1,5 @@
 package com.example.testforum.pages
 
-import android.content.ContentValues
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,17 +39,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.testforum.AuthState
-import com.example.testforum.AuthViewModel
-import com.example.testforum.DataViewModel
+import com.example.testforum.viewmodels.AuthState
+import com.example.testforum.viewmodels.AuthViewModel
+import com.example.testforum.viewmodels.DataViewModel
 import com.example.testforum.R
-import com.example.testforum.data.Post
 import com.example.testforum.data.User
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.toObject
 import com.google.firebase.ktx.Firebase
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,10 +61,8 @@ fun UserProfilePage(
 ) {
     val db = Firebase.firestore
     val users = db.collection("users")
-    val posts = db.collection("posts")
 
     var user by remember { mutableStateOf<User?>(null) }
-//    val postsList = remember { mutableStateListOf<Post>() }
     val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
     LaunchedEffect(userEmail) {
         users.document(userEmail).get().addOnSuccessListener { documentSnapshot ->
@@ -79,17 +73,6 @@ fun UserProfilePage(
     }
 
     LaunchedEffect(userEmail) {
-//        posts.whereEqualTo("user.email", userEmail).get()
-//            .addOnSuccessListener { result ->
-//                postsList.clear()
-//                for (document in result) {
-//                    val post = document.toObject(Post::class.java)
-//                    postsList.add(post)
-//                }
-//            }
-//            .addOnFailureListener { exception ->
-//                Log.d(ContentValues.TAG, "Error getting documents: ", exception)
-//            }
         dataViewModel.getPosts(userEmail)
     }
 

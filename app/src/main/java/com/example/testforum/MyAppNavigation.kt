@@ -7,7 +7,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.testforum.data.User
 import com.example.testforum.pages.ExpandableTopicList
 import com.example.testforum.pages.HomePage
 import com.example.testforum.pages.LogInPage
@@ -16,6 +15,9 @@ import com.example.testforum.pages.ProfilePage
 import com.example.testforum.pages.SignUpPage
 import com.example.testforum.pages.SinglePostPage
 import com.example.testforum.pages.UserProfilePage
+import com.example.testforum.viewmodels.AuthViewModel
+import com.example.testforum.viewmodels.DataViewModel
+import com.example.testforum.viewmodels.TopicViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
 @Composable
@@ -36,9 +38,15 @@ fun MyAppNavigation(
         composable("signup") {
             SignUpPage(modifier, navController, authViewModel)
         }
-
         composable("home") {
-            HomePage(modifier, navController, authViewModel, dataViewModel, topicViewModel, googleSignInClient)
+            HomePage(
+                modifier,
+                navController,
+                authViewModel,
+                dataViewModel,
+                topicViewModel,
+                googleSignInClient
+            )
         }
         composable("profile") {
             val userEmail =
@@ -81,7 +89,15 @@ fun MyAppNavigation(
         ) { backStackEntry ->
             val serializedTopicNames = backStackEntry.arguments?.getString("topicNames")
             val topicNames = serializedTopicNames?.split(",") ?: emptyList()
-            PostsPage(modifier, topicNames, navController, authViewModel, dataViewModel, topicViewModel, googleSignInClient)
+            PostsPage(
+                modifier,
+                topicNames,
+                navController,
+                authViewModel,
+                dataViewModel,
+                topicViewModel,
+                googleSignInClient
+            )
         }
     })
 }
