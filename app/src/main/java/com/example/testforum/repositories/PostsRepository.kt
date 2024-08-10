@@ -14,7 +14,8 @@ class PostsRepository {
 
     suspend fun getPosts(userEmail: String, topicNames: List<String>? = null): List<PostWithUser> {
         val postsList = mutableListOf<PostWithUser>()
-        var query: Query = db.collection("posts").orderBy("creationDate", Query.Direction.DESCENDING)
+        var query: Query =
+            db.collection("posts").orderBy("creationDate", Query.Direction.DESCENDING)
 
         topicNames?.let {
             query = query.whereIn("topicName", it)
@@ -50,16 +51,30 @@ class PostsRepository {
         db.collection("posts").add(newPost).await()
     }
 
-    suspend fun removePost(postId: String) {
+     fun removePost(postId: String) {
         val postReference = db.collection("posts").document(postId)
-        try {
-            val comments = postReference.collection("comments").get().await()
-            for (document in comments) {
-                document.reference.delete().await()
+        postReference.collection("comments").get()
+            .addOnSuccessListener { result ->
+                for (document in result) {
+                    document.reference.delete()
+                }
             }
-            postReference.delete().await()
-        } catch (e: Exception) {
-            Log.w("PostsRepository", "Error deleting post and its comments", e)
-        }
+        postReference.collection("photos").get()
+            .addOnSuccessListener { result ->
+                for (document in result) {
+                    document.reference.delete()
+                }
+            }
+        postReference.delete()
     }
+//        val postReference = db.collection("posts").document(postId)
+//        try {
+//            val comments = postReference.collection("comments").get().await()
+//            for (document in comments) {
+//                document.reference.delete().await()
+//            }
+//            postReference.delete().await()
+//        } catch (e: Exception) {
+//            Log.w("PostsRepository", "Error deleting post and its comments", e)
+//        }
 }

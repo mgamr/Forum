@@ -16,8 +16,8 @@ class TopicViewModel : ViewModel() {
         }
     }
 
-    suspend fun getAllTopicNames(): List<String> {
-        return topicRepository.getAllTopicNames()
+    suspend fun getAllTopicNames(query: String): List<String> {
+        return topicRepository.getAllTopicNames(query)
     }
 
     suspend fun fetchTopics(): List<Topic> {

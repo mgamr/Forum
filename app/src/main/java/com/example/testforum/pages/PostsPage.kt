@@ -6,16 +6,24 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
@@ -25,9 +33,12 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +50,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -52,11 +64,203 @@ import com.example.testforum.viewmodels.DataViewModel
 import com.example.testforum.viewmodels.TopicViewModel
 import com.example.testforum.data.PostWithUser
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import java.util.UUID
 
 @Composable
-fun PostsPage(modifier: Modifier = Modifier, topicNames: List<String>?= null, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel, topicViewModel: TopicViewModel, googleSignInClient: GoogleSignInClient) {
-    DisplayAndAdd(text = "Post", modifier = modifier, topicNames = topicNames, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient, topicViewModel = topicViewModel)
+fun PostsPage(
+    modifier: Modifier = Modifier,
+    topicNames: List<String>? = null,
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    dataViewModel: DataViewModel,
+    topicViewModel: TopicViewModel,
+    googleSignInClient: GoogleSignInClient
+) {
+    DisplayAndAdd(
+        text = "Post",
+        modifier = modifier,
+        topicNames = topicNames,
+        isForum = true,
+        authViewModel = authViewModel,
+        dataViewModel = dataViewModel,
+        navController = navController,
+        googleSignInClient = googleSignInClient,
+        topicViewModel = topicViewModel
+    )
 }
+//
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun DisplayAndAdd(
+//    text: String,
+//    isForum: Boolean,
+//    topicNames: List<String>? = null,
+//    modifier: Modifier,
+//    authViewModel: AuthViewModel,
+//    dataViewModel: DataViewModel,
+//    topicViewModel: TopicViewModel,
+//    navController: NavController,
+//    googleSignInClient: GoogleSignInClient
+//) {
+//    val user by authViewModel.user.observeAsState()
+//    val authState = authViewModel.authState.observeAsState()
+//    val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
+//
+//    DisposableEffect(Unit) {
+//        dataViewModel.getPosts("", topicNames)
+//        onDispose { }
+//    }
+//
+//    var addPost by remember { mutableStateOf(false) }
+//    var newPostText by remember { mutableStateOf("") }
+//    val context = LocalContext.current
+//    var selectedImageUris by remember {
+//        mutableStateOf<List<Uri?>>(emptyList())
+//    }
+//    var topics by remember { mutableStateOf(listOf("Choose a topic")) }
+//    LaunchedEffect(Unit) {
+//        try {
+//            topics = topicViewModel.getAllTopicNames()
+//        } catch (e: Exception) {
+//            Log.e("topic dropdownmenu", "Error fetching topic names", e)
+//        }
+//    }
+//
+//    var isExpanded by remember {
+//        mutableStateOf(false)
+//    }
+//    var selectedTopic by remember {
+//        mutableStateOf(topics[0])
+//    }
+//
+//    val multiplePhotosPickerLauncher = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.PickMultipleVisualMedia(),
+//        onResult = {
+//            selectedImageUris = it
+//        }
+//    )
+//    if (addPost) {
+//        AlertDialog(
+//            onDismissRequest = { addPost = false },
+//            title = { Text(text = "Add $text") },
+//            text = {
+//                Column() {
+//
+//                    ExposedDropdownMenuBox(
+//                        expanded = isExpanded,
+//                        onExpandedChange = { isExpanded = !isExpanded }) {
+//                        TextField(
+//                            value = selectedTopic,
+//                            onValueChange = {},
+//                            readOnly = true,
+//                            trailingIcon = {
+//                                ExposedDropdownMenuDefaults.TrailingIcon(
+//                                    expanded = isExpanded
+//                                )
+//                            },
+//                            modifier = Modifier.menuAnchor()
+//                        )
+//                        ExposedDropdownMenu(
+//                            expanded = isExpanded,
+//                            onDismissRequest = { isExpanded = false }) {
+//                            topics.forEachIndexed { index, s ->
+//                                DropdownMenuItem(
+//                                    text = { Text(text = s) },
+//                                    onClick = {
+//                                        selectedTopic = topics[index]
+//                                        isExpanded = false
+//                                    },
+//                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+//                                )
+//                            }
+//                        }
+//                    }
+//
+//                    TextField(
+//                        value = newPostText,
+//                        onValueChange = { newPostText = it },
+//                        label = { Text(text = "$text Content") }
+//                    )
+//                    Button(onClick = {
+//                        multiplePhotosPickerLauncher.launch(
+//                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+//                        )
+//                    }) {
+//                        Text("upload images")
+//                    }
+//                }
+//
+//            },
+//            confirmButton = {
+//                Button(
+//                    onClick = {
+//                        if (newPostText.isNotBlank()) {
+//                            user?.let {
+//                                dataViewModel.addPost(
+//                                    newPostText,
+//                                    user!!.email,
+//                                    topic = selectedTopic
+//                                );
+//                            }
+//                            Toast.makeText(context, "Added $text", Toast.LENGTH_SHORT).show()
+//                            newPostText = ""
+//                            addPost = false
+//                        }
+//                    }
+//                ) {
+//                    Text(text = "Add")
+//                }
+//            },
+//            dismissButton = {
+//                Button(onClick = { addPost = false }) {
+//                    Text(text = "Cancel")
+//                }
+//            }
+//        )
+//    }
+//    Scaffold() { innerPadding ->
+//        Box() {
+//            Column(
+//                modifier = modifier
+//                    .fillMaxSize()
+//                    .padding(innerPadding)
+//            ) {
+//                if (isForum) {
+//                    TopBar(
+//                        "Forum",
+//                        navController = navController,
+//                        authViewModel = authViewModel,
+//                        googleSignInClient = googleSignInClient
+//                    )
+//                    ViewPosts(
+//                        modifier = Modifier.padding(innerPadding),
+//                        postsWithUsersList,
+//                        navController,
+//                        authViewModel = authViewModel,
+//                        dataViewModel = dataViewModel
+//                    )
+//                }
+//            }
+//            FloatingActionButton(
+//                onClick = {
+//                    if (authState.value is AuthState.Unauthenticated) {
+//                        navController.navigate("login")
+//                    } else {
+//                        addPost = true
+//                    }
+//                },
+//                modifier = Modifier
+//                    .size(100.dp)
+//                    .align(Alignment.BottomEnd)
+//                    .padding(bottom = 20.dp, end = 20.dp),
+//                containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+//                elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
+//            ) {
+//                Text("Add $text")
+//            }
+//        }
+//    }
+//}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,29 +271,28 @@ fun DisplayAndAdd(
     modifier: Modifier,
     authViewModel: AuthViewModel,
     dataViewModel: DataViewModel,
-    topicViewModel: TopicViewModel,
     navController: NavController,
-    googleSignInClient: GoogleSignInClient
+    googleSignInClient: GoogleSignInClient,
+    topicViewModel: TopicViewModel
 ) {
     val user by authViewModel.user.observeAsState()
     val authState = authViewModel.authState.observeAsState()
     val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
+    var searchInput by remember { mutableStateOf("") }
+    var addPost by remember { mutableStateOf(false) }
+    var newPostText by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    var topics by remember { mutableStateOf(listOf("Choose a topic")) }
 
     DisposableEffect(Unit) {
         dataViewModel.getPosts("", topicNames)
         onDispose { }
     }
 
-    var addPost by remember { mutableStateOf(false) }
-    var newPostText by remember { mutableStateOf("") }
-    val context = LocalContext.current
-    var selectedImageUris by remember {
-        mutableStateOf<List<Uri?>>(emptyList())
-    }
-    var topics by remember { mutableStateOf(listOf("Choose a topic")) }
     LaunchedEffect(Unit) {
         try {
-            topics = topicViewModel.getAllTopicNames()
+            topics = topicViewModel.getAllTopicNames("")
         } catch (e: Exception) {
             Log.e("topic dropdownmenu", "Error fetching topic names", e)
         }
@@ -101,11 +304,19 @@ fun DisplayAndAdd(
     var selectedTopic by remember {
         mutableStateOf(topics[0])
     }
+    var selectedImagePaths by remember {
+        mutableStateOf<List<String>>(emptyList())
+    }
 
     val multiplePhotosPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(),
         onResult = {
-            selectedImageUris = it
+            for (imageUri in it) {
+                val uniqueID = UUID.randomUUID().toString()
+                uploadImageToFirebase(imageUri, context, "posts/$uniqueID") { downloadUrl ->
+                    selectedImagePaths = selectedImagePaths + downloadUrl
+                }
+            }
         }
     )
     if (addPost) {
@@ -144,12 +355,13 @@ fun DisplayAndAdd(
                             }
                         }
                     }
-
+                    Spacer(modifier = Modifier.height(16.dp))
                     TextField(
                         value = newPostText,
                         onValueChange = { newPostText = it },
                         label = { Text(text = "$text Content") }
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
                         multiplePhotosPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -158,22 +370,33 @@ fun DisplayAndAdd(
                         Text("upload images")
                     }
                 }
-
             },
             confirmButton = {
                 Button(
                     onClick = {
                         if (newPostText.isNotBlank()) {
+//                            viewModel.addNote(newPostText)
+//                            val post = user?.let { Post(postContent = newPostText, userReference = it) }
+//                            if (post != null) {
+////                                user?.username?.let { posts.add(post) }
+//                                posts.add(post)
+//                            }
                             user?.let {
+//                                dataViewModel.addPost(newPostText, user!!.email, topic = selectedTopic);
                                 dataViewModel.addPost(
                                     newPostText,
                                     user!!.email,
-                                    topic = selectedTopic
+                                    topic = selectedTopic,
+                                    selectedImagePaths
                                 );
                             }
                             Toast.makeText(context, "Added $text", Toast.LENGTH_SHORT).show()
                             newPostText = ""
                             addPost = false
+//                            navController.navigate("home") {
+//                                popUpTo("home") { inclusive = true }
+//                                launchSingleTop = true
+//                            }
                         }
                     }
                 ) {
@@ -201,6 +424,58 @@ fun DisplayAndAdd(
                         authViewModel = authViewModel,
                         googleSignInClient = googleSignInClient
                     )
+//                    Button(onClick = { navController.navigate("topics") }) {
+//                        Text(text = "View topics")
+//                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(BottomAppBarDefaults.bottomAppBarFabColor)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextField(
+                                value = searchInput,
+                                onValueChange = {
+                                    searchInput = it
+                                },
+                                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                shape = RoundedCornerShape(percent = 50),
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent
+                                ),
+                                placeholder = {
+                                    Text("Search...")
+                                },
+                                singleLine = true
+                            )
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Search",
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clickable {
+                                        // Trigger the search only when the search icon is clicked
+                                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                                            "query",
+                                            searchInput
+                                        )
+                                        navController.navigate("searchResults")
+                                    }
+                            )
+                        }
+                    }
+
                     ViewPosts(
                         modifier = Modifier.padding(innerPadding),
                         postsWithUsersList,
@@ -226,6 +501,7 @@ fun DisplayAndAdd(
                 elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
             ) {
                 Text("Add $text")
+//                                Icon(Icons.Filled.Add, contentDescription = null)
             }
         }
     }
@@ -274,7 +550,7 @@ fun ViewPosts(
                         modifier = Modifier
                             .align(Alignment.End)
                             .padding(4.dp),
-                        text = AnnotatedString("view comments"), onClick = {
+                        text = AnnotatedString("view post"), onClick = {
                             navController.currentBackStackEntry?.savedStateHandle?.let {
                                 it["postWithUser"] = postWithUser
                             }

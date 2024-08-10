@@ -12,6 +12,7 @@ import com.example.testforum.pages.HomePage
 import com.example.testforum.pages.LogInPage
 import com.example.testforum.pages.PostsPage
 import com.example.testforum.pages.ProfilePage
+import com.example.testforum.pages.SearchResults
 import com.example.testforum.pages.SignUpPage
 import com.example.testforum.pages.SinglePostPage
 import com.example.testforum.pages.UserProfilePage
@@ -97,6 +98,16 @@ fun MyAppNavigation(
                 dataViewModel,
                 topicViewModel,
                 googleSignInClient
+            )
+        }
+        composable("searchResults") {
+            SearchResults(
+                modifier = modifier,
+                dataViewModel = dataViewModel,
+                authViewModel = authViewModel,
+                navController = navController,
+                googleSignInClient = googleSignInClient,
+                topicViewModel = topicViewModel
             )
         }
     })

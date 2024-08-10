@@ -2,14 +2,20 @@ package com.example.testforum.pages
 
 import android.util.Patterns
 import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Delete
@@ -32,15 +38,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
+import com.example.testforum.R
 import com.example.testforum.viewmodels.AuthState
 import com.example.testforum.viewmodels.AuthViewModel
 import com.example.testforum.viewmodels.DataViewModel
@@ -51,9 +62,18 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
 
 @Composable
-fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewModel: DataViewModel, authViewModel: AuthViewModel, googleSignInClient: GoogleSignInClient) {
-    val postWithUser = navController.previousBackStackEntry?.savedStateHandle?.get<PostWithUser>("postWithUser")
+fun SinglePostPage(
+    modifier: Modifier,
+    navController: NavController,
+    dataViewModel: DataViewModel,
+    authViewModel: AuthViewModel,
+    googleSignInClient: GoogleSignInClient
+) {
+    val postWithUser =
+        navController.previousBackStackEntry?.savedStateHandle?.get<PostWithUser>("postWithUser")
     val commentWithUser by dataViewModel.commentsWithUsers.collectAsState()
+
+    val photos by dataViewModel.photoList.collectAsState()
 
     val user by authViewModel.user.observeAsState()
     val authState = authViewModel.authState.observeAsState()
@@ -78,7 +98,13 @@ fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewMod
                     onClick = {
                         if (newPostText.isNotBlank()) {
                             user?.let {
-                                postWithUser?.let { dataViewModel.addComment(postId = postWithUser.post.postId, newCommentText = newPostText, email = user!!.email); }
+                                postWithUser?.let {
+                                    dataViewModel.addComment(
+                                        postId = postWithUser.post.postId,
+                                        newCommentText = newPostText,
+                                        email = user!!.email
+                                    );
+                                }
 
                             }
                             Toast.makeText(context, "Added Comment", Toast.LENGTH_SHORT).show()
@@ -106,33 +132,78 @@ fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewMod
             dataViewModel.fetchComments(it.postId)
         }
     }
+
+    LaunchedEffect(postWithUser?.post) {
+        postWithUser?.post?.let {
+            dataViewModel.getPhotos(postWithUser.post.postId)
+        }
+    }
+
     Box() {
         LazyColumn(modifier = modifier.fillMaxSize()) {
             postWithUser?.let {
                 item {
                     Column() {
-                        TopBar("", navController, authViewModel = authViewModel, googleSignInClient = googleSignInClient)
+                        TopBar(
+                            "",
+                            navController,
+                            authViewModel = authViewModel,
+                            googleSignInClient = googleSignInClient
+                        )
                         var deletable = false
-                        if(authState.value is AuthState.Authenticated) {
+                        if (authState.value is AuthState.Authenticated) {
                             user?.let {
-                                if(it.moderator and isUnacceptable(postWithUser.post.postContent)) deletable = true
-                                if(it.email == postWithUser.user.email) deletable = true
+                                if (it.moderator and isUnacceptable(postWithUser.post.postContent)) deletable =
+                                    true
+                                if (it.email == postWithUser.user.email) deletable = true
                             }
                         }
-                        SinglePostMainPart(modifier = modifier, postWithUser = postWithUser, navController = navController, deletable = deletable, dataViewModel = dataViewModel)
+                        SinglePostMainPart(
+                            modifier = modifier,
+                            postWithUser = postWithUser,
+                            navController = navController,
+                            deletable = deletable,
+                            dataViewModel = dataViewModel
+                        )
+                        Row() {
+                            for (photo in photos) {
+                                val painter = if (photo.imagePath.isNullOrEmpty()) {
+                                    painterResource(id = R.drawable.default_empty_profile)
+                                } else {
+                                    rememberAsyncImagePainter(model = photo.imagePath)
+                                }
+                                Image(
+                                    painter = painter,
+                                    contentDescription = "Profile picture",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .padding(start = 14.dp, top = 8.dp)
+                                        .clip(CircleShape)
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            items(commentWithUser) {commentWithUser ->
+            items(commentWithUser) { commentWithUser ->
                 var deletable2 = false
-                if(authState.value is AuthState.Authenticated) {
+                if (authState.value is AuthState.Authenticated) {
                     user?.let {
-                        if(it.moderator and isUnacceptable(commentWithUser.comment.commentContent)) deletable2 = true
-                        if(it.email == commentWithUser.user.email) deletable2 = true
+                        if (it.moderator and isUnacceptable(commentWithUser.comment.commentContent)) deletable2 =
+                            true
+                        if (it.email == commentWithUser.user.email) deletable2 = true
                     }
                 }
-                CommentItem(commentWithUser = commentWithUser, navController = navController, deletable = deletable2)
+                CommentItem(
+                    commentWithUser = commentWithUser,
+                    dataViewModel = dataViewModel,
+                    navController = navController,
+                    deletable = deletable2,
+                    postId = postWithUser!!.post.postId
+                )
+//                CommentItem(commentWithUser = commentWithUser, navController = navController, deletable = deletable2)
             }
         }
         FloatingActionButton(
@@ -156,18 +227,47 @@ fun SinglePostPage(modifier: Modifier, navController: NavController, dataViewMod
 }
 
 @Composable
-fun CommentItem(commentWithUser: CommentWithUser, navController: NavController, deletable: Boolean) {
-    Row() {
-        IconButton(onClick = {
-            commentWithUser.user.email.let { email ->
-                navController.navigate("profile/$email")
-            }
-        }) {
-            Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+fun CommentItem(
+    commentWithUser: CommentWithUser,
+    navController: NavController,
+    deletable: Boolean,
+    dataViewModel: DataViewModel,
+    postId: String
+) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(14.dp)
+            .border(
+                width = 1.dp,
+                color = Color.DarkGray,
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        val painter = if (commentWithUser.user.profilePicture.isNullOrEmpty()) {
+            painterResource(id = R.drawable.default_empty_profile)
+        } else {
+            rememberAsyncImagePainter(model = commentWithUser.user.profilePicture)
         }
+        Image(
+            painter = painter,
+            contentDescription = "Profile picture",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(35.dp)
+                .padding(start = 14.dp, top = 8.dp)
+                .clip(CircleShape)
+                .clickable {
+                    commentWithUser.user.email.let { email ->
+                        navController.navigate("userProfile/$email")
+                    }
+                }
+        )
         Column() {
             var text = "Unknown"
-            commentWithUser.user.displayName?.let { text = it
+            commentWithUser.user.displayName?.let {
+                text = it
             } ?: run { commentWithUser.user.username?.let { text = it } }
             Text(
                 text = text,
@@ -175,13 +275,12 @@ fun CommentItem(commentWithUser: CommentWithUser, navController: NavController, 
             )
             ClickableText(text = commentWithUser.comment.commentContent)
         }
-        if(deletable) {
+        if (deletable) {
             IconButton(onClick = {
-                commentWithUser.user.email.let { email ->
-                    navController.navigate("profile/$email")
-                }
+                dataViewModel.removeComment(commentWithUser.comment.commentId, postId)
+                Toast.makeText(context, "Comment deleted", Toast.LENGTH_SHORT).show()
             }) {
-                Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+                Icon(imageVector = Icons.Default.Delete, contentDescription = null)
             }
         }
 
@@ -189,7 +288,12 @@ fun CommentItem(commentWithUser: CommentWithUser, navController: NavController, 
 }
 
 @Composable
-fun DisplayComment(modifier: Modifier, comment: Comment, dataViewModel: DataViewModel, navController: NavController) {
+fun DisplayComment(
+    modifier: Modifier,
+    comment: Comment,
+    dataViewModel: DataViewModel,
+    navController: NavController
+) {
     val user by dataViewModel.user.collectAsState()
 
     Row(modifier = modifier) {
@@ -207,7 +311,8 @@ fun DisplayComment(modifier: Modifier, comment: Comment, dataViewModel: DataView
         }
         Column() {
             var text = "Unknown"
-            user?.displayName?.let { text = it
+            user?.displayName?.let {
+                text = it
             } ?: run { user?.username?.let { text = it } }
             Text(
                 text = text,
@@ -231,33 +336,45 @@ fun SinglePostMainPart(
     val context = LocalContext.current
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = {
-                postWithUser.user.email.let { email ->
-                    navController.navigate("userProfile/$email")
-                }
-            }) {
-                Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+            val painter = if (postWithUser.user.profilePicture.isNullOrEmpty()) {
+                painterResource(id = R.drawable.default_empty_profile)
+            } else {
+                rememberAsyncImagePainter(model = postWithUser.user.profilePicture)
             }
-            Text(
-                text = postWithUser.user.displayName ?: postWithUser.user.username ?: "Unknown",
-                color = Color.Gray
+            Image(
+                painter = painter,
+                contentDescription = "Profile picture",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(35.dp)
+                    .padding(start = 14.dp, top = 8.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        postWithUser.user.email.let { email ->
+                            navController.navigate("userProfile/$email")
+                        }
+                    }
             )
-            if (deletable) {
-                IconButton(onClick = {
-                    dataViewModel.removePost(postWithUser.post.postId)
-                    Toast.makeText(context, "Post deleted", Toast.LENGTH_SHORT).show()
-                }) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = null)
-                }
+        }
+        Text(
+            text = postWithUser.user.displayName ?: postWithUser.user.username ?: "Unknown",
+            color = Color.Gray
+        )
+        if (deletable) {
+            IconButton(onClick = {
+                dataViewModel.removePost(postWithUser.post.postId)
+                Toast.makeText(context, "Post deleted", Toast.LENGTH_SHORT).show()
+                navController.popBackStack()
+            }) {
+                Icon(imageVector = Icons.Default.Delete, contentDescription = null)
             }
-
         }
 
-        ClickableText(
-            text = postWithUser.post.postContent
-        )
     }
 
+    ClickableText(
+        text = postWithUser.post.postContent
+    )
 }
 
 @Composable

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.testforum.data.Comment
 import com.example.testforum.data.CommentWithUser
+import com.example.testforum.data.PhotoData
 import com.example.testforum.data.Post
 import com.example.testforum.data.PostWithUser
 import com.example.testforum.data.User
@@ -25,6 +26,8 @@ class DataViewModel : ViewModel() {
     private val commentsRepository = CommentsRepository()
     private val postsRepository = PostsRepository()
 
+    private val db: FirebaseFirestore = Firebase.firestore
+
     private val _user = MutableStateFlow<User?>(null)
     val user: StateFlow<User?> = _user
 
@@ -33,6 +36,163 @@ class DataViewModel : ViewModel() {
 
     private val _postsWithUsers = MutableStateFlow<List<PostWithUser>>(emptyList())
     val postsWithUsers: StateFlow<List<PostWithUser>> get() = _postsWithUsers
+
+    private val _filteredUsers = MutableStateFlow<List<User>>(emptyList())
+    val filteredUsers: StateFlow<List<User>> = _filteredUsers
+
+    private val _photoList = MutableStateFlow<List<PhotoData>>(emptyList())
+    val photoList: StateFlow<List<PhotoData>> get() = _photoList
+
+    fun getPosts(userEmail: String, topicName: String? = null) {
+        val postsList = mutableListOf<PostWithUser>()
+        var query: Query =
+            db.collection("posts").orderBy("creationDate", Query.Direction.DESCENDING)
+
+        if (topicName != null) {
+            query = query.whereEqualTo("topicName", topicName)
+        }
+
+        query.addSnapshotListener { result, e ->
+
+            e?.let {
+                Log.w("PostViewModel", "Error getting posts", e)
+                return@addSnapshotListener
+            }
+
+            postsList.clear()
+            _postsWithUsers.value = postsList
+            result?.let { snapshot ->
+                snapshot.documents.map { document ->
+                    val post = document.toObject(Post::class.java)?.copy(postId = document.id)
+                    val userReference = post?.userReference
+
+                    userReference?.let {
+                        it.addSnapshotListener { userSnapshot, e ->
+                            e?.let {
+                                Log.w("PostViewModel", "Error getting user data", e)
+                                return@addSnapshotListener
+                            }
+                            val user = userSnapshot?.toObject(User::class.java)
+                            user?.let {
+                                if (userEmail == "" || user.email == userEmail) {
+                                    postsList.add(PostWithUser(post, user))
+                                    if (postsList.size == result.size()) {
+                                        _postsWithUsers.value = postsList
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun removeComment(commentId: String, postId: String) {
+        val commentReference = db.collection("posts").document(postId).collection("comments").document(commentId)
+        commentReference.delete()
+    }
+    fun getFilteredUsers(query: String) {
+        val filteredUsersList = mutableListOf<User>()
+        db.collection("users")
+            .addSnapshotListener { result, e ->
+
+                e?.let {
+                    Log.w("FilteredUserViewModel", "Error getting users", e)
+                    return@addSnapshotListener
+                }
+
+                filteredUsersList.clear()
+                _filteredUsers.value = filteredUsersList
+                result?.let { snapshot ->
+                    snapshot.documents.map { document ->
+                        val user = document.toObject(User::class.java)
+                        user?.let {
+                            if ((user.username?.contains(query, ignoreCase = true) == true)  ||
+                                (user.displayName?.contains(query, ignoreCase = true) == true)
+                            ) {
+                                filteredUsersList.add(user)
+                                if (filteredUsersList.size == result.size()) {
+                                    _filteredUsers.value = filteredUsersList
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+    }
+
+    fun addPost(newPostText: String, email: String, topic: String, selectedImagePaths: List<String>) {
+        val postReference = db.collection("posts").document()
+        postReference.set(Post(postContent = newPostText, userReference = db.collection("users").document(email), topicName = topic, creationDate = Timestamp.now()))
+            .addOnSuccessListener {
+                for(imagePath in selectedImagePaths) {
+                    postReference.collection("photos").add(PhotoData(imagePath))
+                }
+            }
+    }
+
+    fun getFilteredPostsWithUsers(query: String, boolean: Boolean) {
+        val postsList = mutableListOf<PostWithUser>()
+        db.collection("posts").orderBy("creationDate", Query.Direction.DESCENDING)
+            .addSnapshotListener { result, e ->
+
+                e?.let {
+                    Log.w("PostViewModel", "Error getting posts", e)
+                    return@addSnapshotListener
+                }
+
+                postsList.clear()
+                _postsWithUsers.value = postsList
+                result?.let { snapshot ->
+                    snapshot.documents.map { document ->
+                        val post = document.toObject(Post::class.java)?.copy(postId = document.id)
+                        val userReference = post?.userReference
+                        post?.let {
+                            if (post.postContent.contains(query, ignoreCase = true)) {
+                                userReference?.let {
+                                    it.addSnapshotListener { userSnapshot, e ->
+                                        e?.let {
+                                            Log.w("PostViewModel", "Error getting user data", e)
+                                            return@addSnapshotListener
+                                        }
+                                        val user = userSnapshot?.toObject(User::class.java)
+                                        if (user != null) {
+                                            postsList.add(PostWithUser(post, user))
+                                            if (postsList.size == result.size()) {
+                                                _postsWithUsers.value = postsList
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    }
+
+    fun getPhotos(postId: String) {
+        val photosList = mutableListOf<PhotoData>()
+        db.collection("posts").document(postId).collection("photos")
+            .get()
+            .addOnSuccessListener { result ->
+                photosList.clear()
+                _photoList.value = photosList
+                result.documents.map { document ->
+                    val photo =
+                        document.toObject(PhotoData::class.java) ?: return@addOnSuccessListener
+                    photosList.add(photo)
+                    if (photosList.size == result.size()) {
+                        _photoList.value = photosList
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w("CommentViewModel", "Error getting comments", e)
+            }
+    }
 
     fun fetchComments(postId: String) = viewModelScope.launch {
         val comments = commentsRepository.fetchComments(postId)

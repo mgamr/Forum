@@ -22,7 +22,7 @@ class CommentsRepository {
             val result = db.collection("posts").document(postId).collection("comments")
                 .orderBy("creationDate", Query.Direction.ASCENDING).get().await()
             for (document in result) {
-                val comment = document.toObject(Comment::class.java)
+                val comment = document.toObject(Comment::class.java).copy(commentId = document.id)
                 val userReference = comment.userReference
                 userReference?.let { ref ->
                     val userSnapshot = ref.get().await()
