@@ -27,13 +27,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.testforum.AuthViewModel
 import com.example.testforum.DataViewModel
 import com.example.testforum.TopicRepository
+import com.example.testforum.TopicViewModel
 import com.example.testforum.data.Topic
 
 
 @Composable
-fun ExpandableTopicList(navController: NavController,) {
+fun ExpandableTopicList(
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    topicViewModel: TopicViewModel
+) {
     val topicRepository = TopicRepository()
     var topics by remember { mutableStateOf(emptyList<Topic>()) }
 
@@ -48,8 +54,11 @@ fun ExpandableTopicList(navController: NavController,) {
     if (topics.isNotEmpty()) {
         LazyColumn {
             items(topics) { topic ->
-                ExpandableTopicItem(topic){ topicName ->
-                    navController.navigate("posts/$topicName")
+                ExpandableTopicItem(topic, navController, authViewModel, topicViewModel) { topicNames ->
+                    val serializedTopicNames = topicNames.joinToString(",")
+                    navController.navigate("posts/$serializedTopicNames") {
+                        popUpTo("posts") { inclusive = true }
+                    }
                 }
             }
         }
@@ -60,7 +69,13 @@ fun ExpandableTopicList(navController: NavController,) {
 
 
 @Composable
-fun ExpandableTopicItem(topic: Topic,onTopicClick: (String) -> Unit) {
+fun ExpandableTopicItem(
+    topic: Topic,
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    topicViewModel: TopicViewModel,
+    onTopicClick: (List<String>) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     val isExpandable = topic.subtopics?.isNotEmpty() == true
 
@@ -89,18 +104,38 @@ fun ExpandableTopicItem(topic: Topic,onTopicClick: (String) -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)
-                    .clickable { onTopicClick(topic.name) }
+                    .clickable {
+                        val topicNames = collectTopicNames(topic)
+                        onTopicClick(topicNames)
+                    }
             )
+
+            AddTopicButton(topic.id, navController, authViewModel, topicViewModel)
         }
 
         if (expanded && isExpandable) {
             topic.subtopics?.let { subtopicsMap ->
                 Column(modifier = Modifier.padding(start = 32.dp)) {
                     subtopicsMap.forEach { (_, subtopic) ->
-                        ExpandableTopicItem(subtopic, onTopicClick)
+                        ExpandableTopicItem(subtopic, navController, authViewModel, topicViewModel, onTopicClick)
                     }
                 }
             }
         }
     }
+}
+
+fun collectTopicNames(topic: Topic): List<String> {
+    val topicNames = mutableListOf<String>()
+
+
+    fun collectNamesRecursively(currentTopic: Topic) {
+        topicNames.add(currentTopic.name)
+        currentTopic.subtopics?.values?.forEach { subtopic ->
+            collectNamesRecursively(subtopic)
+        }
+    }
+
+    collectNamesRecursively(topic)
+    return topicNames
 }

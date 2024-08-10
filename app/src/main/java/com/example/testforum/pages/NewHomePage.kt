@@ -71,24 +71,153 @@ import com.example.testforum.TopicRepository
 import com.example.testforum.TopicViewModel
 import com.example.testforum.data.PostWithUser
 import com.example.testforum.data.Topic
+import com.example.testforum.data.Post
+import com.example.testforum.data.User
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomePage(modifier: Modifier = Modifier, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel, googleSignInClient: GoogleSignInClient, topicViewModel: TopicViewModel) {
-    DisplayAndAdd(text = "Post", modifier = modifier, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient, topicViewModel = topicViewModel)
+fun HomePage(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    dataViewModel: DataViewModel,
+    topicViewModel: TopicViewModel,
+    googleSignInClient: GoogleSignInClient
+) {
+//    DisplayAndAdd(text = "Post", modifier = modifier, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+    ) {
+        TopBar(
+            "Topics",
+            navController = navController,
+            authViewModel = authViewModel,
+            googleSignInClient = googleSignInClient
+        )
+        AddTopicButton(null, navController, authViewModel, topicViewModel)
+        ExpandableTopicList(navController, authViewModel, topicViewModel)
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, modifier: Modifier, authViewModel: AuthViewModel, dataViewModel: DataViewModel, navController: NavController, googleSignInClient: GoogleSignInClient, topicViewModel: TopicViewModel) {
+fun AddTopicButton(
+    parentTopicId: String ?= null,
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    topicViewModel: TopicViewModel
+) {
+    val authState = authViewModel.authState.observeAsState()
+    val context = LocalContext.current
+
+    var addTopic by remember { mutableStateOf(false) }
+    var newTopicName by remember { mutableStateOf("") }
+
+    if (addTopic) {
+        AlertDialog(
+            onDismissRequest = { addTopic = false },
+            title = { Text(text = "Add new topic") },
+            text = {
+                Column() {
+                    TextField(
+                        value = newTopicName,
+                        onValueChange = { newTopicName = it },
+                        label = { Text(text = "Topic Name") }
+                    )
+                }
+
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newTopicName.isNotBlank()) {
+                            val newTopic = Topic(name = newTopicName)
+                            topicViewModel.addNewTopic(newTopic, parentTopicId)
+                            Toast.makeText(context, "Topic added", Toast.LENGTH_SHORT).show()
+                        }
+                        newTopicName = ""
+                        addTopic = false
+                    }
+                ) {
+                    Text(text = "Add")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { addTopic = false }) {
+                    Text(text = "Cancel")
+                }
+            }
+        )
+    }
+
+    val onAddTopicClick: () -> Unit = {
+        if (authState.value is AuthState.Unauthenticated) {
+            navController.navigate("login")
+        } else {
+            addTopic = true
+        }
+    }
+
+    if(parentTopicId != null){
+        AddSubtopic(onAddTopicClick)
+    } else {
+        AddMainTopic(onAddTopicClick)
+    }
+}
+
+@Composable
+fun AddMainTopic(onclick: () -> Unit) {
+    Button(
+        onClick = onclick,
+        modifier = Modifier.padding(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+            contentColor = Color.Black
+        ),
+        shape = RoundedCornerShape(32.dp)
+    ) {
+        Text(text = "+ Add topic")
+    }
+
+@Composable
+fun AddSubtopic(onclick: () -> Unit) {
+    Button(
+        onClick = onclick,
+        modifier = Modifier
+            .padding(end = 8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+            contentColor = Color.Black
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Text(
+            text = "+ subtopic",
+            fontSize = 10.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Clip
+        )
+    }
+}
+
+@Composable
+fun DisplayAndAdd(
+    text: String,
+    isForum: Boolean,
+    topicNames: List<String>? = null,
+    modifier: Modifier,
+    authViewModel: AuthViewModel,
+    dataViewModel: DataViewModel,
+    navController: NavController,
+    googleSignInClient: GoogleSignInClient
+) {
     val user by authViewModel.user.observeAsState()
     val authState = authViewModel.authState.observeAsState()
     val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
 
     DisposableEffect(Unit) {
-        dataViewModel.getPosts("", topicName)
-        onDispose {  }
+        dataViewModel.getPosts("", topicNames)
+        onDispose { }
     }
 
     var addPost by remember { mutableStateOf(false) }
@@ -197,12 +326,23 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                if(isForum) {
-                    TopBar("Forum", navController = navController, authViewModel = authViewModel, googleSignInClient = googleSignInClient)
-                    Button(onClick = { navController.navigate("topics") }) {
-                        Text(text = "View topics")
-                    }
-                    ViewPosts(modifier = Modifier.padding(innerPadding), postsWithUsersList, navController, authViewModel = authViewModel, dataViewModel = dataViewModel)
+                if (isForum) {
+                    TopBar(
+                        "Forum",
+                        navController = navController,
+                        authViewModel = authViewModel,
+                        googleSignInClient = googleSignInClient
+                    )
+//                    Button(onClick = { navController.navigate("topics") }) {
+//                        Text(text = "View topics")
+//                    }
+                    ViewPosts(
+                        modifier = Modifier.padding(innerPadding),
+                        postsWithUsersList,
+                        navController,
+                        authViewModel = authViewModel,
+                        dataViewModel = dataViewModel
+                    )
                 }
             }
             FloatingActionButton(
@@ -229,7 +369,12 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(text: String, navController: NavController, authViewModel: AuthViewModel, googleSignInClient: GoogleSignInClient) {
+fun TopBar(
+    text: String,
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    googleSignInClient: GoogleSignInClient
+) {
     val authState = authViewModel.authState.observeAsState()
     val user by authViewModel.user.observeAsState()
     TopAppBar(
@@ -242,7 +387,7 @@ fun TopBar(text: String, navController: NavController, authViewModel: AuthViewMo
         },
         navigationIcon = {
             IconButton(onClick = {
-                if(!navController.popBackStack()) {
+                if (!navController.popBackStack()) {
                     val activity: MainActivity = MainActivity()
                     // on below line we are finishing activity.
                     activity.finish()
@@ -292,7 +437,13 @@ fun TopBar(text: String, navController: NavController, authViewModel: AuthViewMo
 }
 
 @Composable
-fun ViewPosts(modifier: Modifier = Modifier, postsWithUsersList: List<PostWithUser>, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel) {
+fun ViewPosts(
+    modifier: Modifier = Modifier,
+    postsWithUsersList: List<PostWithUser>,
+    navController: NavController,
+    authViewModel: AuthViewModel,
+    dataViewModel: DataViewModel
+) {
     val user by authViewModel.user.observeAsState()
     val authState = authViewModel.authState.observeAsState()
     LazyColumn(
@@ -310,13 +461,20 @@ fun ViewPosts(modifier: Modifier = Modifier, postsWithUsersList: List<PostWithUs
                         )
                 ) {
                     var deletable = false
-                    if(authState.value is AuthState.Authenticated) {
+                    if (authState.value is AuthState.Authenticated) {
                         user?.let {
-                            if(it.moderator and isUnacceptable(postWithUser.post.postContent)) deletable = true
-                            if(it.email == postWithUser.user.email) deletable = true
+                            if (it.moderator and isUnacceptable(postWithUser.post.postContent)) deletable =
+                                true
+                            if (it.email == postWithUser.user.email) deletable = true
                         }
                     }
-                    SinglePostMainPart(modifier, postWithUser = postWithUser, navController = navController, deletable = deletable, dataViewModel = dataViewModel)
+                    SinglePostMainPart(
+                        modifier,
+                        postWithUser = postWithUser,
+                        navController = navController,
+                        deletable = deletable,
+                        dataViewModel = dataViewModel
+                    )
                     androidx.compose.foundation.text.ClickableText(
                         modifier = Modifier
                             .align(Alignment.End)
@@ -329,7 +487,7 @@ fun ViewPosts(modifier: Modifier = Modifier, postsWithUsersList: List<PostWithUs
 //                                }
                             }
                             navController.navigate("singlePost")
-                    })
+                        })
                 }
             }
             if (postsWithUsersList.isEmpty()) {
@@ -352,7 +510,13 @@ fun isUnacceptable(postContent: String): Boolean {
 }
 
 @Composable
-fun SinglePostMainPart(modifier: Modifier, postWithUser: PostWithUser,  navController: NavController, deletable: Boolean, dataViewModel: DataViewModel) {
+fun SinglePostMainPart(
+    modifier: Modifier,
+    postWithUser: PostWithUser,
+    navController: NavController,
+    deletable: Boolean,
+    dataViewModel: DataViewModel
+) {
     val context = LocalContext.current
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -367,7 +531,7 @@ fun SinglePostMainPart(modifier: Modifier, postWithUser: PostWithUser,  navContr
                 text = postWithUser.user.displayName ?: postWithUser.user.username ?: "Unknown",
                 color = Color.Gray
             )
-            if(deletable) {
+            if (deletable) {
                 IconButton(onClick = {
                     dataViewModel.removePost(postWithUser.post.postId)
                     Toast.makeText(context, "Post deleted", Toast.LENGTH_SHORT).show()
@@ -398,7 +562,12 @@ fun ClickableText(text: String) {
             val end = matcher.end()
             append(text.substring(lastIndex, start))
             pushStringAnnotation(tag = "URL", annotation = matcher.group())
-            withStyle(style = SpanStyle(color = Color.Blue, textDecoration = TextDecoration.Underline)) {
+            withStyle(
+                style = SpanStyle(
+                    color = Color.Blue,
+                    textDecoration = TextDecoration.Underline
+                )
+            ) {
                 append(matcher.group())
             }
             pop()
@@ -413,8 +582,7 @@ fun ClickableText(text: String) {
         onClick = { offset ->
 
             annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                .firstOrNull()?.let {
-                        stringAnnotation ->
+                .firstOrNull()?.let { stringAnnotation ->
                     uriHandler.openUri(stringAnnotation.item)
                 }
         }

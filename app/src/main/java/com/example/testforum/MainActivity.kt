@@ -60,6 +60,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         authViewModel = authViewModel,
                         dataViewModel = dataViewModel,
+                        topicViewModel = topicViewModel,
                         googleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
                         googleSignInClient = googleSignInClient,
                         topicViewModel = topicViewModel
