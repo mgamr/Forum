@@ -75,6 +75,7 @@ import com.example.testforum.data.Post
 import com.example.testforum.data.User
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(
     modifier: Modifier = Modifier,
@@ -102,7 +103,7 @@ fun HomePage(
 
 @Composable
 fun AddTopicButton(
-    parentTopicId: String ?= null,
+    parentTopicId: String? = null,
     navController: NavController,
     authViewModel: AuthViewModel,
     topicViewModel: TopicViewModel
@@ -158,13 +159,14 @@ fun AddTopicButton(
         }
     }
 
-    if(parentTopicId != null){
+    if (parentTopicId != null) {
         AddSubtopic(onAddTopicClick)
     } else {
         AddMainTopic(onAddTopicClick)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMainTopic(onclick: () -> Unit) {
     Button(
@@ -178,6 +180,7 @@ fun AddMainTopic(onclick: () -> Unit) {
     ) {
         Text(text = "+ Add topic")
     }
+}
 
 @Composable
 fun AddSubtopic(onclick: () -> Unit) {
@@ -200,6 +203,8 @@ fun AddSubtopic(onclick: () -> Unit) {
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DisplayAndAdd(
     text: String,
@@ -208,6 +213,7 @@ fun DisplayAndAdd(
     modifier: Modifier,
     authViewModel: AuthViewModel,
     dataViewModel: DataViewModel,
+    topicViewModel: TopicViewModel,
     navController: NavController,
     googleSignInClient: GoogleSignInClient
 ) {
@@ -226,11 +232,11 @@ fun DisplayAndAdd(
     var selectedImageUris by remember {
         mutableStateOf<List<Uri?>>(emptyList())
     }
-    var topics  by remember { mutableStateOf(listOf("Choose a topic")) }
+    var topics by remember { mutableStateOf(listOf("Choose a topic")) }
     LaunchedEffect(Unit) {
-        try{
+        try {
             topics = topicViewModel.getAllTopicNames()
-        }  catch (e: Exception) {
+        } catch (e: Exception) {
             Log.e("topic dropdownmenu", "Error fetching topic names", e)
         }
     }
@@ -255,18 +261,32 @@ fun DisplayAndAdd(
             text = {
                 Column() {
 
-                    ExposedDropdownMenuBox(expanded = isExpanded, onExpandedChange = { isExpanded = !isExpanded }) {
-                        TextField(value = selectedTopic, onValueChange = {}, readOnly = true, trailingIcon = {ExposedDropdownMenuDefaults.TrailingIcon(
-                            expanded = isExpanded
-                        )}, modifier = Modifier.menuAnchor())
-                        ExposedDropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
+                    ExposedDropdownMenuBox(
+                        expanded = isExpanded,
+                        onExpandedChange = { isExpanded = !isExpanded }) {
+                        TextField(
+                            value = selectedTopic,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(
+                                    expanded = isExpanded
+                                )
+                            },
+                            modifier = Modifier.menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = isExpanded,
+                            onDismissRequest = { isExpanded = false }) {
                             topics.forEachIndexed { index, s ->
-                                DropdownMenuItem(text = { Text(text = s) },
+                                DropdownMenuItem(
+                                    text = { Text(text = s) },
                                     onClick = {
                                         selectedTopic = topics[index]
                                         isExpanded = false
                                     },
-                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding)
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                )
                             }
                         }
                     }
@@ -297,7 +317,11 @@ fun DisplayAndAdd(
 //                                posts.add(post)
 //                            }
                             user?.let {
-                                dataViewModel.addPost(newPostText, user!!.email, topic = selectedTopic);
+                                dataViewModel.addPost(
+                                    newPostText,
+                                    user!!.email,
+                                    topic = selectedTopic
+                                );
                             }
                             Toast.makeText(context, "Added $text", Toast.LENGTH_SHORT).show()
                             newPostText = ""
@@ -588,6 +612,7 @@ fun ClickableText(text: String) {
         }
     )
 }
+
 
 //@Preview(showBackground = true)
 //@Composable

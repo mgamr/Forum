@@ -13,8 +13,9 @@ class TopicViewModel : ViewModel() {
         viewModelScope.launch {
             topicRepository.addTopic(topic, parentTopicId)
         }
+    }
 
-      suspend fun getAllTopicNames(): List<String> {
+    suspend fun getAllTopicNames(): List<String> {
         return topicRepository.getAllTopicNames()
     }
 }

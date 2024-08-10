@@ -55,12 +55,14 @@ class TopicRepository {
                 return childSnapshot.ref // Return the DatabaseReference of the matched subtopic
             } else {
                 topic?.subtopics?.let {
-                    val subtopicRef = findSubtopicReference(childSnapshot.ref.child("subtopics"), targetId)
+                    val subtopicRef =
+                        findSubtopicReference(childSnapshot.ref.child("subtopics"), targetId)
                     if (subtopicRef != null) return subtopicRef
                 }
             }
         }
         return null
+    }
 
       
     suspend fun getAllTopicNames(): List<String> {

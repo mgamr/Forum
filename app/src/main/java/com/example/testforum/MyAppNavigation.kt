@@ -16,7 +16,6 @@ import com.example.testforum.pages.ProfilePage
 import com.example.testforum.pages.SignUpPage
 import com.example.testforum.pages.SinglePostPage
 import com.example.testforum.pages.UserProfilePage
-import com.example.testforum.pages.ViewPosts
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
 @Composable
@@ -26,8 +25,7 @@ fun MyAppNavigation(
     dataViewModel: DataViewModel,
     topicViewModel: TopicViewModel,
     googleSignIn: () -> Unit,
-    googleSignInClient: GoogleSignInClient,
-    topicViewModel: TopicViewModel
+    googleSignInClient: GoogleSignInClient
 ) {
     val navController = rememberNavController()
 
@@ -40,7 +38,7 @@ fun MyAppNavigation(
         }
 
         composable("home") {
-            HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient, topicViewModel)
+            HomePage(modifier, navController, authViewModel, dataViewModel, topicViewModel, googleSignInClient)
         }
         composable("profile") {
             val userEmail =
@@ -83,7 +81,7 @@ fun MyAppNavigation(
         ) { backStackEntry ->
             val serializedTopicNames = backStackEntry.arguments?.getString("topicNames")
             val topicNames = serializedTopicNames?.split(",") ?: emptyList()
-            PostsPage(modifier, topicNames, navController, authViewModel, dataViewModel, googleSignInClient)
+            PostsPage(modifier, topicNames, navController, authViewModel, dataViewModel, topicViewModel, googleSignInClient)
         }
     })
 }
