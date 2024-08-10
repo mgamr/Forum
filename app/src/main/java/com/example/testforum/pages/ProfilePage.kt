@@ -285,3 +285,4 @@ fun uploadImageToFirebase(
         Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
     }
 }
+

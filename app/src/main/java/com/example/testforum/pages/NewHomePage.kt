@@ -7,22 +7,30 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
@@ -35,9 +43,11 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -50,9 +60,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -63,15 +76,18 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.testforum.AuthState
 import com.example.testforum.AuthViewModel
 import com.example.testforum.DataViewModel
 import com.example.testforum.MainActivity
+import com.example.testforum.R
 import com.example.testforum.TopicRepository
 import com.example.testforum.TopicViewModel
 import com.example.testforum.data.PostWithUser
 import com.example.testforum.data.Topic
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,22 +101,21 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
     val user by authViewModel.user.observeAsState()
     val authState = authViewModel.authState.observeAsState()
     val postsWithUsersList by dataViewModel.postsWithUsers.collectAsState()
+    var searchInput by remember { mutableStateOf("") }
+    var addPost by remember { mutableStateOf(false) }
+    var newPostText by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    var topics  by remember { mutableStateOf(listOf("Choose a topic")) }
 
     DisposableEffect(Unit) {
         dataViewModel.getPosts("", topicName)
         onDispose {  }
     }
 
-    var addPost by remember { mutableStateOf(false) }
-    var newPostText by remember { mutableStateOf("") }
-    val context = LocalContext.current
-    var selectedImageUris by remember {
-        mutableStateOf<List<Uri?>>(emptyList())
-    }
-    var topics  by remember { mutableStateOf(listOf("Choose a topic")) }
     LaunchedEffect(Unit) {
         try{
-            topics = topicViewModel.getAllTopicNames()
+            topics = topicViewModel.getAllTopicNames("")
         }  catch (e: Exception) {
             Log.e("topic dropdownmenu", "Error fetching topic names", e)
         }
@@ -112,11 +127,19 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
     var selectedTopic by remember {
         mutableStateOf(topics[0])
     }
+    var selectedImagePaths by remember {
+        mutableStateOf<List<String>>(emptyList())
+    }
 
     val multiplePhotosPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(),
         onResult = {
-            selectedImageUris = it
+            for (imageUri in it) {
+                val uniqueID = UUID.randomUUID().toString()
+                uploadImageToFirebase(imageUri, context, "posts/$uniqueID") { downloadUrl ->
+                    selectedImagePaths = selectedImagePaths + downloadUrl
+                }
+            }
         }
     )
     if (addPost) {
@@ -141,12 +164,13 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
                             }
                         }
                     }
-
+                    Spacer(modifier = Modifier.height(16.dp))
                     TextField(
                         value = newPostText,
                         onValueChange = { newPostText = it },
                         label = { Text(text = "$text Content") }
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
                         multiplePhotosPickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -168,7 +192,8 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
 //                                posts.add(post)
 //                            }
                             user?.let {
-                                dataViewModel.addPost(newPostText, user!!.email, topic = selectedTopic);
+//                                dataViewModel.addPost(newPostText, user!!.email, topic = selectedTopic);
+                                dataViewModel.addPost(newPostText, user!!.email, topic = selectedTopic, selectedImagePaths);
                             }
                             Toast.makeText(context, "Added $text", Toast.LENGTH_SHORT).show()
                             newPostText = ""
@@ -202,6 +227,56 @@ fun DisplayAndAdd(text: String, isForum: Boolean, topicName: String ?= null, mod
                     Button(onClick = { navController.navigate("topics") }) {
                         Text(text = "View topics")
                     }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(BottomAppBarDefaults.bottomAppBarFabColor)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextField(
+                                value = searchInput,
+                                onValueChange = {
+                                    searchInput = it
+                                },
+                                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                shape = RoundedCornerShape(percent = 50),
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent
+                                ),
+                                placeholder = {
+                                    Text("Search...")
+                                },
+                                singleLine = true
+                            )
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Search",
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clickable {
+                                        // Trigger the search only when the search icon is clicked
+
+                                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                                            "query",
+                                            searchInput
+                                        )
+                                        navController.navigate("searchResults")
+                                    }
+                            )
+                        }
+                    }
+
                     ViewPosts(modifier = Modifier.padding(innerPadding), postsWithUsersList, navController, authViewModel = authViewModel, dataViewModel = dataViewModel)
                 }
             }
@@ -321,7 +396,7 @@ fun ViewPosts(modifier: Modifier = Modifier, postsWithUsersList: List<PostWithUs
                         modifier = Modifier
                             .align(Alignment.End)
                             .padding(4.dp),
-                        text = AnnotatedString("view comments"), onClick = {
+                        text = AnnotatedString("view post"), onClick = {
                             navController.currentBackStackEntry?.savedStateHandle?.let {
                                 it["postWithUser"] = postWithUser
 //                                postWithUser.user.email.let { email ->
@@ -356,13 +431,25 @@ fun SinglePostMainPart(modifier: Modifier, postWithUser: PostWithUser,  navContr
     val context = LocalContext.current
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = {
-                postWithUser.user.email.let { email ->
-                    navController.navigate("userProfile/$email")
-                }
-            }) {
-                Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null)
+            val painter = if (postWithUser.user.profilePicture.isNullOrEmpty()) {
+                painterResource(id = R.drawable.default_empty_profile)
+            } else {
+                rememberAsyncImagePainter(model = postWithUser.user.profilePicture)
             }
+            Image(
+                painter = painter,
+                contentDescription = "Profile picture",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(35.dp)
+                    .padding(start = 14.dp, top = 8.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        postWithUser.user.email.let { email ->
+                            navController.navigate("userProfile/$email")
+                        }
+                    }
+            )
             Text(
                 text = postWithUser.user.displayName ?: postWithUser.user.username ?: "Unknown",
                 color = Color.Gray
@@ -371,7 +458,7 @@ fun SinglePostMainPart(modifier: Modifier, postWithUser: PostWithUser,  navContr
                 IconButton(onClick = {
                     dataViewModel.removePost(postWithUser.post.postId)
                     Toast.makeText(context, "Post deleted", Toast.LENGTH_SHORT).show()
-//                    navController.navigate("home")
+                    navController.popBackStack()
                 }) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = null)
                 }
