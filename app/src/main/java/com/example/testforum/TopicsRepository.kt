@@ -61,5 +61,28 @@ class TopicRepository {
             }
         }
         return null
+
+      
+    suspend fun getAllTopicNames(): List<String> {
+        val topicNames = mutableListOf<String>()
+
+        val topLevelTopics = topicsRef.get().await()
+
+        topLevelTopics.children.forEach { topicSnapshot ->
+            val topic = topicSnapshot.getValue<Topic>()
+            topic?.let {
+                collectNamesRec(it, topicNames)
+            }
+        }
+
+        return topicNames
+    }
+
+
+    private fun collectNamesRec(currentTopic: Topic, topicNames: MutableList<String>) {
+        topicNames.add(currentTopic.name)
+        currentTopic.subtopics?.values?.forEach { subtopic ->
+            collectNamesRec(subtopic, topicNames)
+        }
     }
 }

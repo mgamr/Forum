@@ -62,7 +62,8 @@ class MainActivity : ComponentActivity() {
                         dataViewModel = dataViewModel,
                         topicViewModel = topicViewModel,
                         googleSignIn = { googleSignInLauncher.launch(googleSignInClient.signInIntent) },
-                        googleSignInClient = googleSignInClient
+                        googleSignInClient = googleSignInClient,
+                        topicViewModel = topicViewModel
                     )
                 }
             }
