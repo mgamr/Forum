@@ -11,7 +11,7 @@ import kotlinx.coroutines.tasks.await
 
 class TopicRepository {
     private val realtimeDb: FirebaseDatabase = Firebase.database
-    private val topicsRef = realtimeDb.reference.child("newTopics")
+    private val topicsRef = realtimeDb.reference.child("topics")
 
     suspend fun fetchTopics(): List<Topic> {
         val snapshot = topicsRef.get().await()
@@ -43,6 +43,7 @@ class TopicRepository {
 
             newTopicRef?.setValue(topic)?.await()
         } catch (e: Exception) {
+            println("Error writing in testTopic")
             e.printStackTrace()
         }
     }
