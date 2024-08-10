@@ -9,6 +9,8 @@ import com.example.testforum.data.CommentWithUser
 import com.example.testforum.data.Post
 import com.example.testforum.data.PostWithUser
 import com.example.testforum.data.User
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
@@ -138,12 +140,12 @@ class DataViewModel : ViewModel() {
             }
     }
 
-    fun getPosts(userEmail: String, topicName: String ?= null) {
+    fun getPosts(userEmail: String, topicNames: List<String>? = null) {
         val postsList = mutableListOf<PostWithUser>()
         var query: Query = db.collection("posts").orderBy("creationDate", Query.Direction.DESCENDING)
 
-        if (topicName != null) {
-            query = query.whereEqualTo("topicName", topicName)
+        if (topicNames != null) {
+            query = query.whereIn("topicName", topicNames)
         }
 
         query.addSnapshotListener { result, e ->

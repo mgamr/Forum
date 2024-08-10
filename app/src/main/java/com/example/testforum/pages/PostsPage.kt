@@ -8,6 +8,6 @@ import com.example.testforum.DataViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 
 @Composable
-fun PostsPage(modifier: Modifier = Modifier, topicName: String?= null, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel, googleSignInClient: GoogleSignInClient) {
-    DisplayAndAdd(text = "Post", modifier = modifier, topicName = topicName, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient)
+fun PostsPage(modifier: Modifier = Modifier, topicNames: List<String>?= null, navController: NavController, authViewModel: AuthViewModel, dataViewModel: DataViewModel, googleSignInClient: GoogleSignInClient) {
+    DisplayAndAdd(text = "Post", modifier = modifier, topicNames = topicNames, isForum = true, authViewModel = authViewModel, dataViewModel = dataViewModel, navController = navController, googleSignInClient = googleSignInClient)
 }

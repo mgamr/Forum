@@ -24,6 +24,7 @@ fun MyAppNavigation(
     modifier: Modifier = Modifier,
     authViewModel: AuthViewModel,
     dataViewModel: DataViewModel,
+    topicViewModel: TopicViewModel,
     googleSignIn: () -> Unit,
     googleSignInClient: GoogleSignInClient
 ) {
@@ -38,7 +39,8 @@ fun MyAppNavigation(
         }
 
         composable("home") {
-            HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient)
+//            HomePage(modifier, navController, authViewModel, dataViewModel, googleSignInClient)
+            HomePage(modifier, navController, authViewModel, dataViewModel, topicViewModel, googleSignInClient)
         }
         composable("profile") {
             val userEmail =
@@ -73,16 +75,15 @@ fun MyAppNavigation(
             }
         }
         composable("topics") {
-            ExpandableTopicList(navController)
+            ExpandableTopicList(navController, authViewModel, topicViewModel)
         }
         composable(
-            "posts/{topicName}",
-            arguments = listOf(navArgument("topicName") { type = NavType.StringType })
+            "posts/{topicNames}",
+            arguments = listOf(navArgument("topicNames") { type = NavType.StringType })
         ) { backStackEntry ->
-            val topicName = backStackEntry.arguments?.getString("topicName")
-            topicName?.let {
-                PostsPage(modifier, it, navController, authViewModel, dataViewModel, googleSignInClient)
-            }
+            val serializedTopicNames = backStackEntry.arguments?.getString("topicNames")
+            val topicNames = serializedTopicNames?.split(",") ?: emptyList()
+            PostsPage(modifier, topicNames, navController, authViewModel, dataViewModel, googleSignInClient)
         }
     })
 }
